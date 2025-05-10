@@ -1,0 +1,73 @@
+# 源代码文件
+.vscode/**
+src/**
+out/**/*.map
+tsconfig.json
+.eslintrc.json
+.gitignore
+.git
+.github
+.DS_Store
+
+# 确保包含必要的文件
+!out/**
+!webview/**
+!images/**
+
+# 开发和测试文件
+_design/**
+.editorconfig
+.eslintignore
+.prettierrc
+.prettierignore
+.travis.yml
+.gitlab-ci.yml
+.azure-pipelines.yml
+.circleci/**
+.github/**
+.nyc_output/**
+coverage/**
+test/**
+tests/**
+**/*.test.js
+**/*.spec.js
+**/*.test.ts
+**/*.spec.ts
+**/*.vsix
+
+# 文档和示例
+docs/**
+examples/**
+demo/**
+samples/**
+*.md
+!README.md
+!LICENSE
+
+# 构建和依赖文件
+node_modules/**
+.yarnrc
+.npmrc
+.npmignore
+.yarn-integrity
+.yarn/**
+yarn.lock
+yarn-error.log
+package-lock.json
+npm-debug.log
+webpack.config.js
+rollup.config.js
+gulpfile.js
+Gruntfile.js
+
+# 临时文件和备份
+**/*.bak
+**/*.log
+**/*.tmp
+**/*~
+**/.DS_Store
+**/Thumbs.db
+**/*.swp
+
+# 其他不需要的文件
+package copy.json

@@ -2,7 +2,7 @@
   "name": "markdown-livesync",
   "displayName": "Markdown LiveSync",
   "description": "实时同步Markdown编辑与浏览器预览，支持目录导航和光标同步",
-  "version": "0.1.48",
+  "version": "0.1.49",
   "publisher": "hmslsky",
   "author": "hmslsky",
   "icon": "images/icon.png",
@@ -92,7 +92,7 @@
     "@vscode/test-electron": "^1.6.2",
     "eslint": "^8.1.0",
     "glob": "^7.1.7",
-    "mocha": "^9.1.3",
+    "mocha": "^11.2.2",
     "typescript": "^4.5.5"
   },
   "dependencies": {
