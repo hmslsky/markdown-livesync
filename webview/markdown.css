@@ -1,0 +1,399 @@
+/* Markdown预览样式 */
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+  line-height: 1.6;
+  color: #333;
+  margin: 0;
+  padding: 0;
+  height: 100vh;
+  overflow: hidden;
+}
+
+/* 容器布局 - 完全重写 */
+.container {
+  position: relative;
+  width: 100%;
+  height: 100vh;
+  overflow: hidden;
+}
+
+/* 目录导航样式 - 使用固定宽度并固定在左侧 */
+#toc-container {
+  position: fixed;
+  left: 0;
+  top: 0;
+  width: 250px;
+  height: 100vh;
+  background-color: #f5f5f5;
+  border-right: 1px solid #e0e0e0;
+  overflow-y: auto;
+  transition: transform 0.3s ease;
+  z-index: 100;
+  box-shadow: 0 0 10px rgba(0,0,0,0.1);
+}
+
+/* 内容容器样式 - 关键修改 */
+#content-container {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  overflow-y: auto;
+  padding: 20px;
+  box-sizing: border-box;
+  /* 重要：设置左边距为0，内容区域居中 */
+  margin: 0 auto;
+  max-width: 900px;
+}
+
+/* 当目录显示时，确保内容不被遮挡 */
+.container.with-toc #content-container {
+  padding-left: 270px; /* 250px目录宽度 + 20px内边距 */
+  max-width: 1150px; /* 900px内容宽度 + 250px目录宽度 */
+}
+
+#toc-container.hidden {
+  transform: translateX(-100%);
+}
+
+.toc-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 15px;
+  border-bottom: 1px solid #e0e0e0;
+  background-color: #f0f0f0;
+}
+
+.toc-header h3 {
+  margin: 0;
+  font-size: 16px;
+}
+
+#toggle-toc {
+  background: none;
+  border: none;
+  font-size: 18px;
+  cursor: pointer;
+  color: #666;
+}
+
+#toggle-toc:hover {
+  color: #000;
+}
+
+#toc-content {
+  padding: 5px 5px;
+}
+
+/* 目录控制面板 */
+#toc-controls {
+  padding: 5px 10px;
+  border-bottom: 1px solid #e0e0e0;
+  background-color: #f8f8f8;
+  display: flex;
+  align-items: center;
+  font-size: 12px;
+}
+
+#toc-level-control {
+  display: flex;
+  align-items: center;
+  margin-left: auto;
+}
+
+#toc-level-label {
+  margin-right: 5px;
+  color: #666;
+}
+
+.toc-level-button {
+  background: #e1e4e8;
+  border: none;
+  border-radius: 3px;
+  padding: 2px 5px;
+  margin: 0 2px;
+  cursor: pointer;
+  font-size: 11px;
+  color: #24292e;
+}
+
+.toc-level-button:hover {
+  background: #d1d5da;
+}
+
+.toc-level-button.active {
+  background: #0366d6;
+  color: white;
+}
+
+#toc-content ul {
+  list-style-type: none;
+  padding-left: 3px;
+  margin: 0;
+}
+
+#toc-content li {
+  margin: 5px 0;
+  display: flex;
+  align-items: flex-start;
+}
+
+#toc-content a {
+  text-decoration: none;
+  color: #0366d6;
+  display: block;
+  padding: 3px 0;
+  border-radius: 3px;
+  flex: 1;
+}
+
+#toc-content a:hover {
+  background-color: #e8e8e8;
+}
+
+/* 目录展开/折叠按钮样式 */
+.toc-toggle {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  text-align: center;
+  line-height: 16px;
+  font-size: 10px;
+  margin-right: 5px;
+  cursor: pointer;
+  color: #666;
+  user-select: none;
+}
+
+.toc-toggle:hover {
+  color: #000;
+}
+
+.toc-toggle-placeholder {
+  display: inline-block;
+  width: 16px;
+  margin-right: 5px;
+}
+
+/* 目录子列表样式 */
+.toc-sublist {
+  margin-left: 0 !important;
+  padding-left: 15px !important;
+}
+
+/* Markdown内容容器样式 */
+#markdown-content {
+  width: 100%; /* 使用全宽 */
+  max-width: 900px; /* 最大宽度限制 */
+  margin: 0 auto; /* 水平居中 */
+  transition: all 0.3s ease;
+}
+
+/* 工具栏样式 */
+.toolbar {
+  position: fixed;
+  top: 10px;
+  left: 10px;
+  z-index: 150; /* 确保在目录之上 */
+  transition: all 0.3s ease;
+}
+
+/* 当目录隐藏时，工具栏显示在左侧 */
+.container:not(.with-toc) .toolbar {
+  left: 10px;
+}
+
+/* 当目录显示时，工具栏隐藏（因为目录中有关闭按钮） */
+.container.with-toc .toolbar {
+  display: none;
+}
+
+#show-toc {
+  background: rgba(240, 240, 240, 0.8);
+  border: 1px solid #ddd;
+  border-radius: 3px;
+  padding: 5px 10px;
+  cursor: pointer;
+  font-size: 16px;
+}
+
+#show-toc:hover {
+  background: rgba(220, 220, 220, 0.9);
+}
+
+#show-toc.hidden {
+  display: none;
+}
+
+/* 标题样式 */
+h1, h2, h3, h4, h5, h6 {
+  margin-top: 24px;
+  margin-bottom: 16px;
+  font-weight: 600;
+  line-height: 1.25;
+}
+
+h1 {
+  font-size: 2em;
+  border-bottom: 1px solid #23ce45;
+  padding-bottom: 0.3em;
+}
+
+h2 {
+  font-size: 1.5em;
+  border-bottom: 1px solid #eaecef;
+  padding-bottom: 0.3em;
+}
+
+h3 {
+  font-size: 1.25em;
+}
+
+/* 链接样式 */
+a {
+  color: #0366d6;
+  text-decoration: none;
+}
+
+a:hover {
+  text-decoration: underline;
+}
+
+/* 代码样式 */
+code {
+  font-family: SFMono-Regular, Consolas, 'Liberation Mono', Menlo, monospace;
+  background-color: rgba(27, 31, 35, 0.05);
+  padding: 0.2em 0.4em;
+  border-radius: 3px;
+  font-size: 85%;
+}
+
+pre {
+  background-color: #f6f8fa;
+  border-radius: 3px;
+  padding: 16px;
+  overflow: auto;
+  font-size: 85%;
+  line-height: 1.45;
+}
+
+pre code {
+  background-color: transparent;
+  padding: 0;
+}
+
+/* 表格样式 */
+table {
+  border-collapse: collapse;
+  width: 100%;
+  margin-bottom: 16px;
+}
+
+table th, table td {
+  padding: 6px 13px;
+  border: 1px solid #dfe2e5;
+}
+
+table tr {
+  background-color: #fff;
+  border-top: 1px solid #c6cbd1;
+}
+
+table tr:nth-child(2n) {
+  background-color: #f6f8fa;
+}
+
+/* 引用样式 */
+blockquote {
+  margin: 0;
+  padding: 0 1em;
+  color: #6a737d;
+  border-left: 0.25em solid #dfe2e5;
+}
+
+/* 图片样式 */
+img {
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+/* 高亮当前行 */
+.highlight-line {
+  background-color: #fffbdd;
+  animation: highlight-fade 2s ease-out;
+}
+
+@keyframes highlight-fade {
+  from { background-color: #fffbdd; }
+  to { background-color: transparent; }
+}
+
+/* 响应式设计 - 完全重写 */
+@media (max-width: 1200px) {
+  #content-container {
+    max-width: 800px;
+  }
+
+  .container.with-toc #content-container {
+    max-width: 1050px; /* 800px内容宽度 + 250px目录宽度 */
+  }
+}
+
+@media (max-width: 992px) {
+  #content-container {
+    max-width: 700px;
+  }
+
+  .container.with-toc #content-container {
+    max-width: 950px; /* 700px内容宽度 + 250px目录宽度 */
+  }
+}
+
+@media (max-width: 768px) {
+  #content-container {
+    max-width: 100%;
+    padding: 15px;
+  }
+
+  #toc-container {
+    width: 220px;
+  }
+
+  .container.with-toc #content-container {
+    padding-left: 240px; /* 220px目录宽度 + 20px内边距 */
+    max-width: 100%;
+  }
+}
+
+@media (max-width: 576px) {
+  /* 在小屏幕上，目录覆盖内容而不是推动内容 */
+  #toc-container {
+    width: 80%;
+    box-shadow: 0 0 15px rgba(0,0,0,0.2);
+  }
+
+  .container.with-toc #content-container {
+    padding-left: 20px; /* 恢复正常内边距 */
+    max-width: 100%;
+  }
+
+  /* 添加半透明背景，当目录打开时 */
+  .container.with-toc::before {
+    content: "";
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.3);
+    z-index: 90;
+    display: block;
+  }
+
+  /* 确保目录在半透明背景之上 */
+  #toc-container {
+    z-index: 100;
+  }
+}

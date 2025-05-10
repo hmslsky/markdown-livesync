@@ -1,0 +1,98 @@
+{
+  "name": "markdown-livesync",
+  "displayName": "Markdown LiveSync",
+  "description": "实时同步Markdown编辑与浏览器预览，支持目录导航和光标同步",
+  "version": "0.1.13",
+  "author": "hmslsky",
+  "engines": {
+    "vscode": "^1.60.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "activationEvents": [
+    "onCommand:markdown-livesync.openMarkdownInBrowser",
+    "onLanguage:markdown"
+  ],
+  "main": "./out/extension.js",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/hmslsky/markdown-livesync.git"
+  },
+  "contributes": {
+    "commands": [
+      {
+        "command": "markdown-livesync.openMarkdownInBrowser",
+        "title": "Markdown LiveSync: 在浏览器中预览"
+      }
+    ],
+    "menus": {
+      "editor/context": [
+        {
+          "when": "editorLangId == markdown",
+          "command": "markdown-livesync.openMarkdownInBrowser",
+          "group": "navigation"
+        }
+      ]
+    },
+    "keybindings": [
+      {
+        "command": "markdown-livesync.openMarkdownInBrowser",
+        "key": "ctrl+shift+v",
+        "mac": "cmd+shift+v",
+        "when": "editorLangId == markdown"
+      }
+    ],
+    "configuration": {
+      "title": "Markdown LiveSync",
+      "properties": {
+        "markdown-livesync.browser": {
+          "type": "string",
+          "default": "",
+          "description": "指定用于打开Markdown预览的浏览器路径，留空使用默认浏览器"
+        },
+        "markdown-livesync.showToc": {
+          "type": "boolean",
+          "default": true,
+          "description": "是否默认显示目录导航"
+        },
+        "markdown-livesync.debug": {
+          "type": "boolean",
+          "default": false,
+          "description": "启用调试日志"
+        }
+      }
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "pretest": "npm run compile && npm run lint",
+    "lint": "eslint src --ext ts",
+    "test": "node ./out/test/runTest.js"
+  },
+  "devDependencies": {
+    "@types/express": "^4.17.13",
+    "@types/glob": "^7.1.4",
+    "@types/linkify-it": "^3.0.2",
+    "@types/markdown-it": "^12.0.3",
+    "@types/mocha": "^9.0.0",
+    "@types/node": "14.x",
+    "@types/vscode": "^1.60.0",
+    "@types/ws": "^8.5.4",
+    "@typescript-eslint/eslint-plugin": "^5.1.0",
+    "@typescript-eslint/parser": "^5.1.0",
+    "@vscode/test-electron": "^1.6.2",
+    "eslint": "^8.1.0",
+    "glob": "^7.1.7",
+    "mocha": "^9.1.3",
+    "typescript": "^4.5.5"
+  },
+  "dependencies": {
+    "express": "^4.17.1",
+    "markdown-it": "^12.3.2",
+    "open": "^8.4.0",
+    "ws": "^8.13.0"
+  }
+}
