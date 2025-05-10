@@ -69,7 +69,7 @@ let currentScrollStrategy = SCROLL_STRATEGIES.ID_MATCH;
 const debugToolsConfig = {
   // 是否启用调试工具 - 通过修改此值来控制调试工具的显示/隐藏
   // 设置为 true 显示调试工具，设置为 false 隐藏调试工具
-  enabled: true,  // 默认不显示调试工具
+  enabled: false,  // 默认不显示调试工具
 
   // 加载保存的配置
   load: function() {
@@ -697,21 +697,68 @@ function highlightElement(element, duration = 3000) {
   // 添加高亮类
   element.classList.add('highlight-line');
 
-  // 添加一个临时的边框，使高亮更明显
+  // 保存原始样式
   const originalBorder = element.style.border;
   const originalBackground = element.style.backgroundColor;
+  const originalBoxShadow = element.style.boxShadow;
+  const originalPosition = element.style.position;
+  const originalZIndex = element.style.zIndex;
 
+  // 添加更明显的高亮效果
   element.style.border = '2px solid #ff9800';
   element.style.backgroundColor = '#fffbdd';
+  element.style.boxShadow = '0 0 10px rgba(255, 152, 0, 0.7)';
+
+  // 确保元素在视觉上突出
+  if (originalPosition === 'static') {
+    element.style.position = 'relative';
+  }
+  element.style.zIndex = '5';
+
+  // 添加光标指示器
+  const indicator = document.createElement('div');
+  indicator.style.position = 'absolute';
+  indicator.style.left = '-20px';
+  indicator.style.top = '0';
+  indicator.style.height = '100%';
+  indicator.style.width = '4px';
+  indicator.style.backgroundColor = '#ff9800';
+  indicator.style.borderRadius = '2px';
+  indicator.style.animation = 'pulse 1.5s infinite';
+
+  // 添加脉冲动画
+  const style = document.createElement('style');
+  style.textContent = `
+    @keyframes pulse {
+      0% { opacity: 0.6; }
+      50% { opacity: 1; }
+      100% { opacity: 0.6; }
+    }
+  `;
+  document.head.appendChild(style);
+
+  // 如果元素有相对或绝对定位，添加指示器
+  if (getComputedStyle(element).position !== 'static') {
+    element.appendChild(indicator);
+  }
 
   // 指定时间后移除高亮效果
   setTimeout(() => {
     element.classList.remove('highlight-line');
     element.style.border = originalBorder;
+    element.style.boxShadow = originalBoxShadow;
+    element.style.position = originalPosition;
+    element.style.zIndex = originalZIndex;
 
     // 使用过渡效果平滑恢复原始背景色
     element.style.transition = 'background-color 1s ease';
     element.style.backgroundColor = originalBackground;
+
+    // 移除指示器和动画样式
+    if (indicator.parentNode === element) {
+      element.removeChild(indicator);
+    }
+    style.remove();
 
     // 过渡完成后移除过渡样式
     setTimeout(() => {
@@ -843,7 +890,11 @@ function scrollToLine(lineNumber, highlight = false) {
   const lineIdElement = document.getElementById(`${lineNumber}`);
   if (lineIdElement) {
     console.log(`成功: 找到ID为${lineNumber}的元素`);
-    scrollToElement(lineIdElement, highlight);
+
+    // 添加临时高亮效果，帮助用户识别当前光标位置
+    const tempHighlight = highlight || true; // 默认添加高亮效果
+
+    scrollToElement(lineIdElement, tempHighlight);
 
     // 更新调试工具中的当前行显示（如果存在）
     if (window.updateCurrentLineDisplay) {
@@ -886,7 +937,11 @@ function scrollToLine(lineNumber, highlight = false) {
   if (closestElement) {
     const closestId = parseInt(closestElement.id, 10);
     console.log(`成功: 找到最接近行号${lineNumber}的元素，ID为${closestId}`);
-    scrollToElement(closestElement, highlight);
+
+    // 添加临时高亮效果，帮助用户识别当前光标位置
+    const tempHighlight = highlight || true; // 默认添加高亮效果
+
+    scrollToElement(closestElement, tempHighlight);
 
     // 更新调试工具中的当前行显示（如果存在）
     if (window.updateCurrentLineDisplay) {
@@ -943,7 +998,8 @@ function scrollToElement(element, highlight = false) {
   // 滚动到元素
   element.scrollIntoView({
     behavior: 'smooth',
-    block: 'center'
+    block: 'center', // 使用 'center' 使元素在视口中垂直居中
+    inline: 'center' // 水平居中显示
   });
 
   // 如果需要高亮显示
@@ -1408,10 +1464,10 @@ function adjustLayout() {
     // 调整内容区域的最大宽度
     if (isTocVisible) {
       // 目录可见时，内容区域宽度减小
-      container.style.maxWidth = `${Math.min(windowWidth - 300, 1200)}px`;
+      container.style.maxWidth = `${windowWidth - 300}px`;
     } else {
       // 目录隐藏时，内容区域可以更宽
-      container.style.maxWidth = `${Math.min(windowWidth - 100, 1200)}px`;
+      container.style.maxWidth = `${windowWidth - 100}px`;
     }
 
     console.log(`布局已调整: 窗口宽度=${windowWidth}px, 目录${isTocVisible ? '可见' : '隐藏'}`);

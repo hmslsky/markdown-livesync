@@ -42,15 +42,12 @@ body {
   overflow-y: auto;
   padding: 20px;
   box-sizing: border-box;
-  /* 重要：设置左边距为0，内容区域居中 */
-  margin: 0 auto;
-  max-width: 900px;
+  text-align: center; /* 这是关键 - 使用text-align来居中内容 */
 }
 
 /* 当目录显示时，确保内容不被遮挡 */
 .container.with-toc #content-container {
   padding-left: 270px; /* 250px目录宽度 + 20px内边距 */
-  max-width: 1150px; /* 900px内容宽度 + 250px目录宽度 */
 }
 
 #toc-container.hidden {
@@ -241,10 +238,14 @@ body {
 
 /* Markdown内容容器样式 */
 #markdown-content {
+  display: inline-block; /* 关键 - 使用inline-block使元素可以被text-align:center居中 */
   width: 100%; /* 使用全宽 */
   max-width: 900px; /* 最大宽度限制 */
-  margin: 0 auto; /* 水平居中 */
+  margin: 0 auto; /* 水平居中 - 这是关键 */
   transition: all 0.3s ease;
+  text-align: left; /* 确保内容本身是左对齐的 */
+  box-sizing: border-box; /* 确保padding不会增加宽度 */
+  padding: 0 20px; /* 添加左右内边距 */
 }
 
 /* 工具栏样式 */
@@ -380,9 +381,12 @@ img {
   background-color: #fffbdd !important;
   animation: highlight-pulse 2s ease-out infinite;
   position: relative;
-  z-index: 1;
+  z-index: 5;
   border-radius: 3px;
   box-shadow: 0 0 8px rgba(255, 152, 0, 0.5);
+  border-left: 3px solid #ff9800 !important;
+  padding-left: 10px !important;
+  margin-left: -10px !important;
 }
 
 @keyframes highlight-fade {
@@ -396,30 +400,28 @@ img {
   100% { box-shadow: 0 0 5px rgba(255, 152, 0, 0.5); }
 }
 
-/* 响应式设计 - 完全重写 */
-@media (max-width: 1200px) {
-  #content-container {
-    max-width: 800px;
-  }
+/* 光标指示器动画 */
+@keyframes cursor-blink {
+  0% { opacity: 0.6; }
+  50% { opacity: 1; }
+  100% { opacity: 0.6; }
+}
 
-  .container.with-toc #content-container {
-    max-width: 1050px; /* 800px内容宽度 + 250px目录宽度 */
+/* 响应式设计 - 完全重写 */
+@media (max-width: 100%) {
+  #markdown-content {
+    max-width: 800px;
   }
 }
 
-@media (max-width: 992px) {
-  #content-container {
+@media (max-width: 100%) {
+  #markdown-content {
     max-width: 700px;
-  }
-
-  .container.with-toc #content-container {
-    max-width: 950px; /* 700px内容宽度 + 250px目录宽度 */
   }
 }
 
 @media (max-width: 768px) {
   #content-container {
-    max-width: 100%;
     padding: 15px;
   }
 
@@ -429,6 +431,9 @@ img {
 
   .container.with-toc #content-container {
     padding-left: 240px; /* 220px目录宽度 + 20px内边距 */
+  }
+
+  #markdown-content {
     max-width: 100%;
   }
 }
@@ -442,6 +447,10 @@ img {
 
   .container.with-toc #content-container {
     padding-left: 20px; /* 恢复正常内边距 */
+    padding-right: 20px;
+  }
+
+  #markdown-content {
     max-width: 100%;
   }
 
