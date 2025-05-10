@@ -1,4 +1,35 @@
 declare module 'markdown-it' {
+  interface Token {
+    type: string;
+    tag: string;
+    attrs: [string, string][];
+    map: [number, number] | null;
+    nesting: number;
+    level: number;
+    children: Token[] | null;
+    content: string;
+    markup: string;
+    info: string;
+    meta: any;
+    block: boolean;
+    hidden: boolean;
+  }
+
+  interface Renderer {
+    rules: {
+      [key: string]: (tokens: Token[], idx: number, options: any, env: any, self: Renderer) => string;
+    };
+    renderToken(tokens: Token[], idx: number, options: any): string;
+  }
+
+  interface CoreRuler {
+    push(ruleName: string, fn: (state: any) => boolean): void;
+  }
+
+  interface Core {
+    ruler: CoreRuler;
+  }
+
   interface MarkdownItOptions {
     html?: boolean;
     xhtmlOut?: boolean;
@@ -18,6 +49,8 @@ declare module 'markdown-it' {
     constructor(options?: MarkdownItOptions);
     render(markdown: string): string;
     utils: MarkdownItUtils;
+    renderer: Renderer;
+    core: Core;
   }
 
   namespace MarkdownIt {}

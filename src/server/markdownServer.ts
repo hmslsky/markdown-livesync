@@ -235,7 +235,7 @@ export class MarkdownServer {
           <div class="container ${shouldShowToc ? 'with-toc' : ''}">
             <div id="toc-container" class="${shouldShowToc ? '' : 'hidden'}">
               <div class="toc-header">
-                <h3>目录</h3>
+                <h3>TOC</h3>
                 <button id="toggle-toc" title="切换目录显示">×</button>
               </div>
               <div id="toc-content"></div>
