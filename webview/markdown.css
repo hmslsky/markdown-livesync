@@ -90,7 +90,7 @@ body {
 
 /* 目录控制面板 */
 #toc-controls {
-  padding: 8px 12px;
+  padding: 4px 4px;
   border-bottom: 1px solid #e0e0e0;
   background-color: #f8f8f8;
   display: flex;
@@ -104,7 +104,7 @@ body {
 #toc-title {
   width: 100%;
   text-align: center;
-  margin-bottom: 10px;
+  margin-bottom: 1px;
 }
 
 /* 文章标题样式 */
@@ -120,44 +120,58 @@ body {
   display: flex;
   align-items: center;
   width: 100%;
-  justify-content: flex-end;
-}
-
-#toc-level-label {
-  margin-right: 5px;
-  color: #666;
+  justify-content: center;
+  margin-top: 4px; /* 调整上边距为10px */
+  margin-bottom: 0px; /* 调整下边距为10px */
+  gap: 6px; /* 稍微增加按钮间距 */
 }
 
 .toc-level-button {
-  background: #e1e4e8;
-  border: none;
-  border-radius: 3px;
-  padding: 2px 5px;
-  margin: 0 2px;
+  background: #f0f0f0;
+  border: 1px solid #ddd;
+  border-radius: 50%;
+  width: 28px; /* 20px * 1.4 = 28px */
+  height: 17px; /* 12px * 1.4 ≈ 17px */
+  padding: 0;
+  margin: 0;
   cursor: pointer;
-  font-size: 11px;
-  color: #24292e;
+  font-size: 12px; /* 增大字体 */
+  color: #666;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
 }
 
 .toc-level-button:hover {
-  background: #d1d5da;
+  background: #e0e0e0;
+  transform: scale(1.1);
 }
 
 .toc-level-button.active {
   background: #0366d6;
   color: white;
+  border-color: #0366d6;
+  transform: scale(1.1);
+}
+
+/* 特殊处理"All"按钮 */
+.toc-level-button[data-level="-1"] {
+  border-radius: 10px;
+  width: 40px; /* 28px * 1.4 ≈ 40px */
+  font-size: 11px;
 }
 
 #toc-content ul {
   list-style-type: none;
-  padding-left: 5px;
+  padding-left: 0px;
   margin: 0;
 }
 
 #toc-content li {
   margin: 6px 0;
   display: flex;
-  align-items: flex-start;
+  align-items: center; /* 改为居中对齐 */
   line-height: 1.4;
 }
 
@@ -187,17 +201,19 @@ body {
 }
 
 #toc-content a:hover {
-  background-color: #e8e8e8;
+  text-decoration: underline;
+  color: #0056b3;
 }
 
 /* 目录展开/折叠按钮样式 */
 .toc-toggle {
-  display: inline-block;
-  width: 16px;
-  height: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  height: 14px;
   text-align: center;
-  line-height: 16px;
-  font-size: 10px;
+  font-size: 9px;
   margin-right: 5px;
   cursor: pointer;
   color: #666;
@@ -210,14 +226,14 @@ body {
 
 .toc-toggle-placeholder {
   display: inline-block;
-  width: 16px;
+  width: 14px;
   margin-right: 5px;
 }
 
 /* 目录子列表样式 */
 .toc-sublist {
   margin-left: 0 !important;
-  padding-left: 18px !important;
+  padding-left: 8px !important;
   border-left: 1px solid #eaecef;
   margin-top: 4px !important;
   margin-bottom: 4px !important;

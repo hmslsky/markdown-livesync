@@ -33,8 +33,8 @@ export class MarkdownServer {
     this.markdownProcessor = new MarkdownProcessor();
     this.app = express();
 
-    // 初始化防抖函数，300毫秒延迟
-    this.debouncedCursorPositionChanged = debounce(this.onCursorPositionChanged.bind(this), 300);
+    // 初始化防抖函数，100毫秒延迟（减少延迟以提高响应速度）
+    this.debouncedCursorPositionChanged = debounce(this.onCursorPositionChanged.bind(this), 100);
 
     this.setupServer();
     this.startServer();
@@ -62,6 +62,7 @@ export class MarkdownServer {
       vscode.window.onDidChangeTextEditorSelection(event => {
         const document = event.textEditor.document;
         if (document.languageId === 'markdown') {
+          Logger.info(`编辑器选择变化: ${document.uri.toString()}, 行: ${event.selections[0].active.line + 1}`);
           // 使用防抖函数处理光标位置变化
           this.debouncedCursorPositionChanged(document, event.selections[0].active);
         }
@@ -108,9 +109,15 @@ export class MarkdownServer {
 
         let sentCount = 0;
         connections.forEach(client => {
-          if (client.readyState === WebSocket.WebSocket.OPEN) {
-            client.send(positionMessage);
-            sentCount++;
+          try {
+            if (client.readyState === WebSocket.WebSocket.OPEN) {
+              client.send(positionMessage);
+              sentCount++;
+            } else {
+              Logger.info(`客户端连接状态不是OPEN: ${client.readyState}`);
+            }
+          } catch (error) {
+            Logger.error(`发送消息时出错: ${error instanceof Error ? error.message : String(error)}`);
           }
         });
 
@@ -162,7 +169,13 @@ export class MarkdownServer {
   private setupServer() {
     // 静态文件服务
     const webviewPath = path.join(this.context.extensionPath, 'webview');
-    this.app.use('/static', express.static(webviewPath));
+    Logger.info(`静态文件路径: ${webviewPath}`);
+
+    // 添加中间件记录静态文件请求
+    this.app.use('/static', (req, _res, next) => {
+      Logger.info(`请求静态文件: ${req.path}`);
+      next();
+    }, express.static(webviewPath));
 
     // API路由
     this.app.get('/api/markdown', (req, res) => {
@@ -248,6 +261,7 @@ export class MarkdownServer {
             </div>
           </div>
           <script src="/static/preview.js"></script>
+          <!-- 调试工具脚本会在需要时动态加载 -->
         </body>
         </html>
       `);

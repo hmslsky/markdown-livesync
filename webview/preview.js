@@ -7,13 +7,31 @@ const initialLine = window.initialLine || 1;
 const showToc = window.showToc;
 const wsUrl = window.wsUrl;
 
-// DOM元素
-const contentElement = document.getElementById('markdown-content');
-const tocContentElement = document.getElementById('toc-content');
-const tocContainer = document.getElementById('toc-container');
-const showTocButton = document.getElementById('show-toc');
-const toggleTocButton = document.getElementById('toggle-toc');
-const container = document.querySelector('.container');
+// DOM元素 - 使用函数延迟初始化，确保在 DOMContentLoaded 后获取
+let contentElement, tocContentElement, tocContainer, showTocButton, toggleTocButton, container;
+
+// 初始化 DOM 元素引用
+function initDOMElements() {
+  contentElement = document.getElementById('markdown-content');
+  tocContentElement = document.getElementById('toc-content');
+  tocContainer = document.getElementById('toc-container');
+  showTocButton = document.getElementById('show-toc');
+  toggleTocButton = document.getElementById('toggle-toc');
+  container = document.querySelector('.container');
+
+  // 检查必要的元素是否存在
+  if (!contentElement) {
+    console.error('未找到 markdown-content 元素');
+  }
+
+  if (!tocContentElement) {
+    console.warn('未找到 toc-content 元素');
+  }
+
+  if (!tocContainer) {
+    console.warn('未找到 toc-container 元素');
+  }
+}
 
 // WebSocket连接
 let ws = null;
@@ -22,7 +40,7 @@ let ws = null;
 const tocConfig = {
   // 默认展开层级，1表示只展开第一级，2表示展开到第二级，以此类推
   // 0表示全部折叠，-1表示全部展开
-  defaultExpandLevel: 2,
+  defaultExpandLevel: 1,
 
   // 获取保存的配置
   load: function() {
@@ -39,36 +57,72 @@ const tocConfig = {
   }
 };
 
-// 调试模式
-let debugMode = false;
-
-// 跳转策略
+// 跳转策略 - 简化为只使用ID匹配
 const SCROLL_STRATEGIES = {
-  AUTO: 'auto',         // 自动尝试所有策略
-  ID_MATCH: '1',        // 策略1: 通过ID匹配(line-{lineNumber})
-  HEADING_MATCH: '2',   // 策略2: 通过标题匹配(heading-{index})
-  RATIO_MATCH: '3'      // 策略3: 基于比例的滚动方法
+  ID_MATCH: 'id_match'  // 通过ID匹配，找不到则找最近的ID
 };
 
 // 当前跳转策略
-let currentScrollStrategy = SCROLL_STRATEGIES.AUTO;
+let currentScrollStrategy = SCROLL_STRATEGIES.ID_MATCH;
+
+// 调试工具配置
+const debugToolsConfig = {
+  // 是否启用调试工具 - 通过修改此值来控制调试工具的显示/隐藏
+  // 设置为 true 显示调试工具，设置为 false 隐藏调试工具
+  enabled: true,  // 默认不显示调试工具
+
+  // 加载保存的配置
+  load: function() {
+    // 尝试从本地存储加载配置
+    const savedEnabled = localStorage.getItem('markdown-livesync-debug-enabled');
+    if (savedEnabled !== null) {
+      this.enabled = savedEnabled === 'true';
+    }
+    return this.enabled;
+  },
+
+  // 保存配置
+  save: function() {
+    localStorage.setItem('markdown-livesync-debug-enabled', this.enabled.toString());
+  }
+};
 
 // 初始化
 document.addEventListener('DOMContentLoaded', () => {
+  console.log('DOMContentLoaded 事件触发');
+
+  // 初始化 DOM 元素引用
+  initDOMElements();
+
+  // 加载调试工具配置
+  debugToolsConfig.load();
+
+  // 设置调试工具为启用状态（可以根据需要修改）
+  debugToolsConfig.enabled = true;  // 设置为 true 显示调试工具，false 隐藏调试工具
+  debugToolsConfig.save();
+
+  // 加载调试工具脚本
+  if (debugToolsConfig.enabled) {
+    loadDebugTools();
+    console.log('调试工具已启用，正在加载...');
+  }
+
   // 加载Markdown内容
   loadMarkdownContent();
 
   // 设置页面标题
   updatePageTitle();
 
-  // 设置事件监听器
-  setupEventListeners();
+  try {
+    // 设置事件监听器
+    setupEventListeners();
+    console.log('事件监听器设置完成');
+  } catch (error) {
+    console.error('设置事件监听器时出错:', error);
+  }
 
   // 建立WebSocket连接
   connectWebSocket();
-
-  // 添加调试模式切换按钮
-  addDebugTools();
 });
 
 /**
@@ -145,11 +199,11 @@ function renderToc(tocItems) {
           <h1 class="article-title">${title}</h1>
         </div>
         <div id="toc-level-control">
-          <span id="toc-level-label">Actions:</span>
-          <button class="toc-level-button ${expandLevel === 1 ? 'active' : ''}" data-level="1">Level 1</button>
-          <button class="toc-level-button ${expandLevel === 2 ? 'active' : ''}" data-level="2">Level 2</button>
-          <button class="toc-level-button ${expandLevel === 3 ? 'active' : ''}" data-level="3">Level 3</button>
-          <button class="toc-level-button ${expandLevel === -1 ? 'active' : ''}" data-level="-1">Expand All</button>
+          <button class="toc-level-button ${expandLevel === 1 ? 'active' : ''}" data-level="1">1</button>
+          <button class="toc-level-button ${expandLevel === 2 ? 'active' : ''}" data-level="2">2</button>
+          <button class="toc-level-button ${expandLevel === 3 ? 'active' : ''}" data-level="3">3</button>
+          <button class="toc-level-button ${expandLevel === 4 ? 'active' : ''}" data-level="4">4</button>
+          <button class="toc-level-button ${expandLevel === -1 ? 'active' : ''}" data-level="-1">All</button>
         </div>
       </div>
     `;
@@ -222,9 +276,8 @@ function renderToc(tocItems) {
           isExpanded = true;
         } else if (expandLevel === 0) {
           isExpanded = false;
-        } else if (expandLevel === 1) {
-          isExpanded = adjustedLevel === 1;
         } else {
+          // 修正逻辑：只有当前级别小于选择的级别时才展开
           isExpanded = adjustedLevel < expandLevel;
         }
 
@@ -258,11 +311,11 @@ function renderToc(tocItems) {
     let controlsHtml = `
       <div id="toc-controls">
         <div id="toc-level-control">
-          <span id="toc-level-label">Actions:</span>
-          <button class="toc-level-button ${expandLevel === 1 ? 'active' : ''}" data-level="1">Level 1</button>
-          <button class="toc-level-button ${expandLevel === 2 ? 'active' : ''}" data-level="2">Level 2</button>
-          <button class="toc-level-button ${expandLevel === 3 ? 'active' : ''}" data-level="3">Level 3</button>
-          <button class="toc-level-button ${expandLevel === -1 ? 'active' : ''}" data-level="-1">Expand All</button>
+          <button class="toc-level-button ${expandLevel === 1 ? 'active' : ''}" data-level="1">1</button>
+          <button class="toc-level-button ${expandLevel === 2 ? 'active' : ''}" data-level="2">2</button>
+          <button class="toc-level-button ${expandLevel === 3 ? 'active' : ''}" data-level="3">3</button>
+          <button class="toc-level-button ${expandLevel === 4 ? 'active' : ''}" data-level="4">4</button>
+          <button class="toc-level-button ${expandLevel === -1 ? 'active' : ''}" data-level="-1">All</button>
         </div>
       </div>
     `;
@@ -326,9 +379,8 @@ function renderToc(tocItems) {
           isExpanded = true;
         } else if (expandLevel === 0) {
           isExpanded = false;
-        } else if (expandLevel === 1) {
-          isExpanded = item.level === 1;
         } else {
+          // 修正逻辑：只有当前级别小于选择的级别时才展开
           isExpanded = item.level < expandLevel;
         }
 
@@ -404,12 +456,6 @@ function renderToc(tocItems) {
           behavior: 'smooth',
           block: 'start'
         });
-
-        // 高亮显示目标元素，使其更容易被注意到
-        highlightElement(targetElement);
-
-        // 显示指示器，提示用户已跳转到哪个标题
-        showHeadingIndicator(targetElement);
 
         console.log(`已滚动到目标元素`);
       } else {
@@ -507,8 +553,8 @@ function updateTocExpandState(level) {
     // 确定是否应该展开
     // level === -1: 全部展开
     // level === 0: 全部折叠
-    // level === 1: 只展开1级标题
-    // 否则: 如果按钮级别 < 目标级别，则展开
+    // level === 1, 2, 3, 4: 只展开到对应级别
+    // 修正逻辑：默认收起状态，只有当前级别小于选择的级别时才展开
     let shouldExpand = false;
 
     if (level === -1) {
@@ -517,11 +563,9 @@ function updateTocExpandState(level) {
     } else if (level === 0) {
       // 全部折叠
       shouldExpand = false;
-    } else if (level === 1) {
-      // 1级：只展开1级标题
-      shouldExpand = toggleLevel === 1;
     } else {
-      // 其他级别：如果按钮级别 < 目标级别，则展开
+      // 只有当前级别小于选择的级别时才展开
+      // 例如：选择级别2时，只展开级别1的项目
       shouldExpand = toggleLevel < level;
     }
 
@@ -601,10 +645,6 @@ function updateTocExpandState(level) {
  * 这个函数遍历文档中的所有标题元素，为它们添加唯一的ID。
  * 这些ID用于目录导航和锚点链接。
  * 简化版本：只添加ID属性，不添加其他属性，减少计算复杂度。
- *
- * 添加ID的好处：
- * 1. 允许通过目录直接跳转到特定标题
- * 2. 使得可以通过URL片段（如#heading-1）直接导航到特定部分
  */
 function addIdsToHeadings() {
   console.log('为所有标题元素添加ID');
@@ -617,16 +657,26 @@ function addIdsToHeadings() {
   headings.forEach((heading, index) => {
     // 如果标题元素还没有ID，添加一个
     if (!heading.id) {
-      // 使用特殊格式的ID，以避免与行号ID冲突
-      // 使用h前缀加索引，如h1, h2, h3等
-      heading.id = `h${index + 1}`;
+      // 使用heading-前缀加索引，如heading-1, heading-2等
+      heading.id = `heading-${index + 1}`;
       console.log(`为标题添加ID: ${heading.id}, 内容: ${heading.textContent.trim()}`);
     }
   });
 
-  // 由于我们已经在服务器端为所有元素添加了ID属性，
-  // 这里不再需要查找data-line属性并添加ID
-  // 所有元素都已经有了id="line-{lineNumber}"格式的ID
+  // 检查所有元素，确保有数字ID的元素可以被正确定位
+  console.log('检查所有元素的ID属性');
+  const allElements = contentElement.querySelectorAll('[id]');
+  console.log(`找到 ${allElements.length} 个带有ID的元素`);
+
+  // 统计数字ID的数量
+  let numericIdCount = 0;
+  allElements.forEach(el => {
+    if (!isNaN(parseInt(el.id, 10))) {
+      numericIdCount++;
+    }
+  });
+
+  console.log(`其中 ${numericIdCount} 个元素有数字ID，可用于行号定位`);
 }
 
 /**
@@ -748,22 +798,34 @@ function showTocPanel() {
 }
 
 /**
+ * 切换目录显示/隐藏状态
+ *
+ * 这个函数是为了向后兼容而保留的，实际上会根据当前状态调用 hideToc 或 showTocPanel
+ */
+function toggleToc() {
+  console.log('toggleToc 函数已被调用，但建议直接使用 hideToc 或 showTocPanel');
+
+  // 检查目录是否可见
+  const isTocVisible = !tocContainer.classList.contains('hidden');
+
+  if (isTocVisible) {
+    hideToc();
+  } else {
+    showTocPanel();
+  }
+}
+
+/**
  * 滚动到指定行
  *
  * 这个函数负责将预览内容滚动到与编辑器中指定行号对应的位置。
- * 简化后只使用ID属性进行定位，减少复杂性并提高性能。
- *
- * 支持的定位策略：
- * - 自动(auto): 依次尝试所有策略，直到成功
- * - 策略1: 通过ID匹配(line-{lineNumber})
- * - 策略2: 通过ID匹配(heading-{index})
- * - 策略3: 基于比例的滚动方法
+ * 简化后只使用ID属性进行定位，如果找不到精确匹配，则找最近的ID。
  *
  * @param {number} lineNumber - 编辑器中的行号
  * @param {boolean} highlight - 是否高亮显示目标元素，默认为false
  */
 function scrollToLine(lineNumber, highlight = false) {
-  console.log(`尝试滚动到行: ${lineNumber}, 使用策略: ${currentScrollStrategy}`);
+  console.log(`尝试滚动到行: ${lineNumber}`);
 
   // 显示当前行号指示器，让用户知道当前光标位置
   showLineIndicator(lineNumber);
@@ -777,96 +839,66 @@ function scrollToLine(lineNumber, highlight = false) {
   // 记录开始查找的时间，用于性能分析
   const startTime = performance.now();
 
-  // 如果使用自动策略，或者指定了策略1
-  if (currentScrollStrategy === SCROLL_STRATEGIES.AUTO ||
-      currentScrollStrategy === SCROLL_STRATEGIES.ID_MATCH) {
-    // 策略1: 尝试使用ID直接等于行号的元素
-    const lineIdElement = document.getElementById(`${lineNumber}`);
-    if (lineIdElement) {
-      console.log(`策略1成功: 找到ID为${lineNumber}的元素`);
+  // 尝试使用ID直接等于行号的元素
+  const lineIdElement = document.getElementById(`${lineNumber}`);
+  if (lineIdElement) {
+    console.log(`成功: 找到ID为${lineNumber}的元素`);
+    scrollToElement(lineIdElement, highlight);
 
-      scrollToElement(lineIdElement, highlight);
-      logPerformance(startTime, "策略1");
-      return;
+    // 更新调试工具中的当前行显示（如果存在）
+    if (window.updateCurrentLineDisplay) {
+      window.updateCurrentLineDisplay(lineNumber);
     }
 
-    // 如果只使用策略1但失败了，记录日志
-    if (currentScrollStrategy === SCROLL_STRATEGIES.ID_MATCH) {
-      console.log(`策略1失败: 未找到ID为${lineNumber}的元素`);
-      return;
-    }
-  }
-
-  // 如果使用自动策略，或者指定了策略2
-  if (currentScrollStrategy === SCROLL_STRATEGIES.AUTO ||
-      currentScrollStrategy === SCROLL_STRATEGIES.HEADING_MATCH) {
-    // 策略2: 尝试查找标题元素
-    // 获取所有标题元素
-    const headings = contentElement.querySelectorAll('h1, h2, h3, h4, h5, h6');
-
-    // 如果有标题元素
-    if (headings.length > 0) {
-      // 查找最接近的标题
-      let closestHeading = null;
-      let closestDistance = Number.MAX_SAFE_INTEGER;
-
-      // 遍历所有标题元素
-      for (let i = 0; i < headings.length; i++) {
-        const heading = headings[i];
-
-        // 确保标题有ID
-        if (!heading.id) {
-          heading.id = `h${i + 1}`;
-        }
-
-        // 获取标题的位置信息
-        const headingRect = heading.getBoundingClientRect();
-        const headingTop = headingRect.top + window.scrollY;
-
-        // 估算行号位置（基于文档总高度和行数的比例）
-        const documentHeight = document.body.scrollHeight;
-        const totalLines = getTotalLines();
-        const estimatedLinePosition = (lineNumber / totalLines) * documentHeight;
-
-        // 计算距离
-        const distance = Math.abs(headingTop - estimatedLinePosition);
-
-        // 更新最接近的标题
-        if (distance < closestDistance) {
-          closestDistance = distance;
-          closestHeading = heading;
-        }
-      }
-
-      // 如果找到了最接近的标题
-      if (closestHeading) {
-        console.log(`策略2成功: 找到最接近行号 ${lineNumber} 的标题: ${closestHeading.textContent.trim()}`);
-
-        scrollToElement(closestHeading, highlight);
-        logPerformance(startTime, "策略2");
-        return;
-      }
-    }
-
-    // 如果只使用策略2但失败了，记录日志
-    if (currentScrollStrategy === SCROLL_STRATEGIES.HEADING_MATCH) {
-      console.log(`策略2失败: 未找到接近行号 ${lineNumber} 的标题元素`);
-      return;
-    }
-  }
-
-  // 如果使用自动策略，或者指定了策略3
-  if (currentScrollStrategy === SCROLL_STRATEGIES.AUTO ||
-      currentScrollStrategy === SCROLL_STRATEGIES.RATIO_MATCH) {
-    // 策略3: 使用比例方法滚动
-    console.log('策略3: 使用比例方法滚动');
-    scrollToLineByRatio(lineNumber);
-    logPerformance(startTime, "策略3");
+    logPerformance(startTime, "精确匹配");
     return;
   }
 
-  // 如果指定了无效的策略，记录错误
-  console.error(`无效的滚动策略: ${currentScrollStrategy}`);
+  // 如果没有找到精确匹配，查找最近的ID
+  console.log(`未找到ID为${lineNumber}的元素，尝试查找最近的ID`);
+
+  // 获取所有带有数字ID的元素
+  const allElements = Array.from(contentElement.querySelectorAll('[id]'))
+    .filter(el => !isNaN(parseInt(el.id, 10)))
+    .map(el => ({
+      element: el,
+      id: parseInt(el.id, 10)
+    }))
+    .sort((a, b) => a.id - b.id); // 按ID排序
+
+  if (allElements.length === 0) {
+    console.warn('未找到任何带有数字ID的元素，无法滚动');
+    return;
+  }
+
+  // 查找最接近的ID
+  let closestElement = null;
+  let minDistance = Number.MAX_SAFE_INTEGER;
+
+  for (const item of allElements) {
+    const distance = Math.abs(item.id - lineNumber);
+    if (distance < minDistance) {
+      minDistance = distance;
+      closestElement = item.element;
+    }
+  }
+
+  if (closestElement) {
+    const closestId = parseInt(closestElement.id, 10);
+    console.log(`成功: 找到最接近行号${lineNumber}的元素，ID为${closestId}`);
+    scrollToElement(closestElement, highlight);
+
+    // 更新调试工具中的当前行显示（如果存在）
+    if (window.updateCurrentLineDisplay) {
+      window.updateCurrentLineDisplay(closestId);
+    }
+
+    logPerformance(startTime, "最近ID匹配");
+    return;
+  }
+
+  // 如果所有方法都失败，记录错误
+  console.error(`无法找到任何接近行号${lineNumber}的元素`);
 }
 
 /**
@@ -1057,30 +1089,7 @@ function showHeadingIndicator(headingElement) {
   }, 4000);
 }
 
-/**
- * 使用比例方法滚动到指定行（回退方法）
- *
- * 当无法通过ID属性精确定位时，使用这个方法作为回退。
- * 它基于文档的估计总行数和当前行号的比例来计算滚动位置。
- *
- * @param {number} lineNumber - 编辑器中的行号
- */
-function scrollToLineByRatio(lineNumber) {
-  // 获取估计的总行数
-  const totalLines = getTotalLines();
-
-  // 计算滚动比例
-  const ratio = Math.min(lineNumber / totalLines, 1); // 限制比例最大为1
-
-  // 计算滚动位置
-  const scrollHeight = contentElement.scrollHeight;
-  const scrollPosition = Math.floor(scrollHeight * ratio);
-
-  console.log(`使用比例方法滚动: 行号 ${lineNumber}/${totalLines}, 比例: ${ratio}, 位置: ${scrollPosition}px`);
-
-  // 滚动到计算出的位置
-  contentElement.scrollTop = scrollPosition;
-}
+// 已移除 scrollToLineByRatio 函数，现在只使用ID匹配策略
 
 /**
  * 建立WebSocket连接
@@ -1091,17 +1100,23 @@ function connectWebSocket() {
     return;
   }
 
-  ws = new WebSocket(wsUrl);
+  console.log('正在连接WebSocket:', wsUrl);
 
-  ws.onopen = () => {
-    console.log('WebSocket连接已建立');
+  try {
+    ws = new WebSocket(wsUrl);
 
-    // 发送连接成功消息
-    sendPing();
+    ws.onopen = () => {
+      console.log('WebSocket连接已建立');
 
-    // 设置定期发送ping的定时器
-    startHeartbeat();
-  };
+      // 发送连接成功消息
+      sendPing();
+
+      // 设置定期发送ping的定时器
+      startHeartbeat();
+    };
+  } catch (error) {
+    console.error('WebSocket连接失败:', error);
+  }
 
   // 保存最后一次光标位置
   let lastCursorLineNumber = null;
@@ -1109,7 +1124,7 @@ function connectWebSocket() {
   ws.onmessage = (event) => {
     try {
       const message = JSON.parse(event.data);
-      console.log('收到WebSocket消息:', message.type);
+      console.log('收到WebSocket消息:', message.type, message);
 
       if (message.type === 'update') {
         console.log('收到文档更新');
@@ -1146,21 +1161,18 @@ function connectWebSocket() {
         // 保存最后一次光标位置
         lastCursorLineNumber = message.lineNumber;
 
-        // 更新调试工具中的当前行号显示
-        if (window.updateCurrentLineDisplay) {
-          window.updateCurrentLineDisplay(message.lineNumber);
-        }
-
         // 使用更长的延迟确保DOM已完全加载
         // 对于光标移动，使用更长的延迟，因为这可能发生在文档更新后
         setTimeout(() => {
           // 检查DOM是否已经准备好
           if (contentElement.querySelectorAll('[id]').length > 0) {
+            console.log(`准备滚动到行 ${message.lineNumber}，DOM已准备好`);
             scrollToLine(message.lineNumber, false);
           } else {
-            console.warn('DOM元素尚未准备好，无法滚动到指定行');
+            console.warn('DOM元素尚未准备好，无法滚动到指定行，将在300ms后重试');
             // 再次尝试，使用更长的延迟
             setTimeout(() => {
+              console.log(`重试滚动到行 ${message.lineNumber}`);
               scrollToLine(message.lineNumber, false);
             }, 300);
           }
@@ -1171,6 +1183,7 @@ function connectWebSocket() {
       }
     } catch (error) {
       console.error('处理WebSocket消息时出错:', error);
+      console.error('原始消息:', event.data);
     }
   };
 
@@ -1243,321 +1256,167 @@ function sendPing() {
 }
 
 /**
- * 添加调试工具
+ * 设置事件监听器
  */
-function addDebugTools() {
-  // 创建调试工具容器
-  const debugTools = document.createElement('div');
-  debugTools.id = 'debug-tools';
-  debugTools.style.position = 'fixed';
-  debugTools.style.bottom = '10px';
-  debugTools.style.left = '10px';
-  debugTools.style.zIndex = '9999';
-  debugTools.style.backgroundColor = 'rgba(0, 0, 0, 0.7)';
-  debugTools.style.color = 'white';
-  debugTools.style.padding = '10px';
-  debugTools.style.borderRadius = '5px';
-  debugTools.style.fontSize = '12px';
-  debugTools.style.display = 'flex';
-  debugTools.style.flexDirection = 'column';
-  debugTools.style.gap = '10px';
-  debugTools.style.maxWidth = '300px';
-  debugTools.style.boxShadow = '0 2px 10px rgba(0, 0, 0, 0.3)';
+function setupEventListeners() {
+  // 设置目录切换按钮事件
+  const showTocButton = document.getElementById('show-toc');
+  if (showTocButton) {
+    showTocButton.addEventListener('click', () => {
+      showTocPanel();
+    });
+  } else {
+    console.warn('未找到 show-toc 按钮');
+  }
 
-  // 添加标题
-  const title = document.createElement('div');
-  title.textContent = '调试工具';
-  title.style.fontWeight = 'bold';
-  title.style.borderBottom = '1px solid rgba(255, 255, 255, 0.3)';
-  title.style.paddingBottom = '5px';
-  title.style.marginBottom = '5px';
+  // 在 HTML 模板中，关闭按钮的 ID 是 toggle-toc，而不是 close-toc
+  const toggleTocButton = document.getElementById('toggle-toc');
+  if (toggleTocButton) {
+    toggleTocButton.addEventListener('click', () => {
+      hideToc();
+    });
+  } else {
+    console.warn('未找到 toggle-toc 按钮');
+  }
 
-  // 添加调试模式切换按钮
-  const debugToggle = document.createElement('button');
-  debugToggle.textContent = '显示行号标记';
-  debugToggle.style.padding = '5px 10px';
-  debugToggle.style.cursor = 'pointer';
-  debugToggle.style.backgroundColor = '#4CAF50';
-  debugToggle.style.border = 'none';
-  debugToggle.style.borderRadius = '3px';
-  debugToggle.style.color = 'white';
+  // 监听窗口大小变化，调整布局
+  window.addEventListener('resize', () => {
+    try {
+      adjustLayout();
+    } catch (error) {
+      console.error('窗口大小变化时调整布局出错:', error);
+    }
+  });
 
-  debugToggle.addEventListener('click', () => {
-    debugMode = !debugMode;
-    debugToggle.textContent = debugMode ? '隐藏行号标记' : '显示行号标记';
-    debugToggle.style.backgroundColor = debugMode ? '#f44336' : '#4CAF50';
+  // 监听调试工具事件
+  window.addEventListener('scrollStrategyChanged', (e) => {
+    try {
+      currentScrollStrategy = e.detail.strategy;
+      console.log(`主脚本接收到策略变更: ${currentScrollStrategy}`);
+    } catch (error) {
+      console.error('处理策略变更事件时出错:', error);
+    }
+  });
 
-    if (debugMode) {
-      showLineMarkers();
+  window.addEventListener('reloadDebugTools', () => {
+    try {
+      loadDebugTools();
+    } catch (error) {
+      console.error('重新加载调试工具时出错:', error);
+    }
+  });
+
+  // 初始调整布局
+  try {
+    console.log('初始调整布局');
+    adjustLayout();
+  } catch (error) {
+    console.error('初始调整布局时出错:', error);
+  }
+}
+
+/**
+ * 加载调试工具
+ */
+function loadDebugTools() {
+  console.log('开始加载调试工具...');
+  console.log('调试工具状态:', debugToolsConfig.enabled ? '启用' : '禁用');
+
+  // 检查是否已经加载
+  if (window.debugTools) {
+    console.log('调试工具已经加载，正在初始化...');
+    initializeDebugTools();
+    return;
+  }
+
+  // 创建脚本元素
+  const script = document.createElement('script');
+
+  // 使用完整路径
+  script.src = '/static/debug-tools.js';
+  console.log('正在加载调试工具脚本:', script.src);
+
+  script.onload = () => {
+    console.log('调试工具脚本加载成功');
+    if (window.debugTools) {
+      console.log('window.debugTools 对象已创建');
     } else {
-      hideLineMarkers();
+      console.error('window.debugTools 对象未创建');
     }
-  });
+    initializeDebugTools();
+  };
 
-  // 添加策略选择器
-  const strategyContainer = document.createElement('div');
-  strategyContainer.style.display = 'flex';
-  strategyContainer.style.flexDirection = 'column';
-  strategyContainer.style.gap = '5px';
-
-  const strategyLabel = document.createElement('div');
-  strategyLabel.textContent = '跳转策略:';
-  strategyLabel.style.marginBottom = '3px';
-
-  const strategySelect = document.createElement('select');
-  strategySelect.style.padding = '5px';
-  strategySelect.style.borderRadius = '3px';
-  strategySelect.style.border = 'none';
-
-  // 添加策略选项
-  const strategies = [
-    { value: SCROLL_STRATEGIES.AUTO, label: '自动 (尝试所有策略)' },
-    { value: SCROLL_STRATEGIES.ID_MATCH, label: '策略1: ID匹配 (line-N)' },
-    { value: SCROLL_STRATEGIES.HEADING_MATCH, label: '策略2: 标题匹配 (heading-N)' },
-    { value: SCROLL_STRATEGIES.RATIO_MATCH, label: '策略3: 比例匹配' }
-  ];
-
-  strategies.forEach(strategy => {
-    const option = document.createElement('option');
-    option.value = strategy.value;
-    option.textContent = strategy.label;
-    if (strategy.value === currentScrollStrategy) {
-      option.selected = true;
-    }
-    strategySelect.appendChild(option);
-  });
-
-  strategySelect.addEventListener('change', () => {
-    currentScrollStrategy = strategySelect.value;
-    console.log(`跳转策略已更改为: ${currentScrollStrategy}`);
-
-    // 保存用户偏好
-    localStorage.setItem('markdown-livesync-scroll-strategy', currentScrollStrategy);
-
-    // 如果有输入的行号，立即使用新策略跳转
-    const lineNumber = parseInt(lineInput.value, 10);
-    if (!isNaN(lineNumber) && lineNumber > 0) {
-      scrollToLine(lineNumber, true);
-    }
-  });
-
-  // 尝试从本地存储加载策略设置
-  const savedStrategy = localStorage.getItem('markdown-livesync-scroll-strategy');
-  if (savedStrategy && Object.values(SCROLL_STRATEGIES).includes(savedStrategy)) {
-    currentScrollStrategy = savedStrategy;
-    // 更新选择器
-    for (let i = 0; i < strategySelect.options.length; i++) {
-      if (strategySelect.options[i].value === currentScrollStrategy) {
-        strategySelect.selectedIndex = i;
-        break;
-      }
-    }
-  }
-
-  strategyContainer.appendChild(strategyLabel);
-  strategyContainer.appendChild(strategySelect);
-
-  // 添加策略说明
-  const strategyInfo = document.createElement('div');
-  strategyInfo.style.fontSize = '10px';
-  strategyInfo.style.color = '#aaa';
-  strategyInfo.style.marginTop = '3px';
-  strategyInfo.textContent = '选择不同策略可以测试哪种定位方法最适合当前文档';
-  strategyContainer.appendChild(strategyInfo);
-
-  // 添加跳转到行功能
-  const jumpContainer = document.createElement('div');
-  jumpContainer.style.display = 'flex';
-  jumpContainer.style.alignItems = 'center';
-  jumpContainer.style.gap = '5px';
-
-  const lineInput = document.createElement('input');
-  lineInput.type = 'number';
-  lineInput.min = '1';
-  lineInput.placeholder = '行号';
-  lineInput.style.width = '60px';
-  lineInput.style.padding = '5px';
-  lineInput.style.borderRadius = '3px';
-  lineInput.style.border = 'none';
-
-  const jumpButton = document.createElement('button');
-  jumpButton.textContent = '跳转';
-  jumpButton.style.padding = '5px 10px';
-  jumpButton.style.cursor = 'pointer';
-  jumpButton.style.backgroundColor = '#2196F3';
-  jumpButton.style.border = 'none';
-  jumpButton.style.borderRadius = '3px';
-  jumpButton.style.color = 'white';
-  jumpButton.style.flexGrow = '1';
-
-  jumpButton.addEventListener('click', () => {
-    const lineNumber = parseInt(lineInput.value, 10);
-    if (!isNaN(lineNumber) && lineNumber > 0) {
-      scrollToLine(lineNumber, true);
-    }
-  });
-
-  // 添加回车键支持
-  lineInput.addEventListener('keypress', (e) => {
-    if (e.key === 'Enter') {
-      const lineNumber = parseInt(lineInput.value, 10);
-      if (!isNaN(lineNumber) && lineNumber > 0) {
-        scrollToLine(lineNumber, true);
-      }
-    }
-  });
-
-  jumpContainer.appendChild(lineInput);
-  jumpContainer.appendChild(jumpButton);
-
-  // 添加当前行号显示
-  const currentLineContainer = document.createElement('div');
-  currentLineContainer.style.display = 'flex';
-  currentLineContainer.style.alignItems = 'center';
-  currentLineContainer.style.justifyContent = 'space-between';
-  currentLineContainer.style.marginTop = '5px';
-
-  const currentLineLabel = document.createElement('span');
-  currentLineLabel.textContent = '当前行号:';
-
-  const currentLineValue = document.createElement('span');
-  currentLineValue.id = 'current-line-value';
-  currentLineValue.textContent = '-';
-  currentLineValue.style.fontWeight = 'bold';
-
-  currentLineContainer.appendChild(currentLineLabel);
-  currentLineContainer.appendChild(currentLineValue);
-
-  // 添加折叠/展开功能
-  const toggleButton = document.createElement('button');
-  toggleButton.textContent = '收起';
-  toggleButton.style.position = 'absolute';
-  toggleButton.style.top = '10px';
-  toggleButton.style.right = '10px';
-  toggleButton.style.padding = '2px 5px';
-  toggleButton.style.fontSize = '10px';
-  toggleButton.style.backgroundColor = 'transparent';
-  toggleButton.style.border = '1px solid rgba(255, 255, 255, 0.3)';
-  toggleButton.style.borderRadius = '3px';
-  toggleButton.style.color = 'white';
-  toggleButton.style.cursor = 'pointer';
-
-  const toolContent = document.createElement('div');
-  toolContent.style.display = 'flex';
-  toolContent.style.flexDirection = 'column';
-  toolContent.style.gap = '10px';
-
-  let isCollapsed = false;
-  toggleButton.addEventListener('click', () => {
-    isCollapsed = !isCollapsed;
-    toggleButton.textContent = isCollapsed ? '展开' : '收起';
-    toolContent.style.display = isCollapsed ? 'none' : 'flex';
-
-    // 保存用户偏好
-    localStorage.setItem('markdown-livesync-debug-collapsed', isCollapsed.toString());
-  });
-
-  // 尝试从本地存储加载折叠状态
-  const savedCollapsed = localStorage.getItem('markdown-livesync-debug-collapsed');
-  if (savedCollapsed === 'true') {
-    isCollapsed = true;
-    toggleButton.textContent = '展开';
-    toolContent.style.display = 'none';
-  }
-
-  // 添加元素到调试工具容器
-  debugTools.appendChild(title);
-  debugTools.appendChild(toggleButton);
-
-  // 添加内容到工具内容容器
-  toolContent.appendChild(debugToggle);
-  toolContent.appendChild(strategyContainer);
-  toolContent.appendChild(jumpContainer);
-  toolContent.appendChild(currentLineContainer);
-
-  // 将工具内容添加到主容器
-  debugTools.appendChild(toolContent);
+  script.onerror = (error) => {
+    console.error('加载调试工具脚本失败:', error);
+    console.error('请检查 debug-tools.js 文件是否存在于正确的路径');
+  };
 
   // 添加到文档
-  document.body.appendChild(debugTools);
-
-  // 更新当前行号显示的函数
-  window.updateCurrentLineDisplay = function(lineNumber) {
-    const currentLineValue = document.getElementById('current-line-value');
-    if (currentLineValue) {
-      currentLineValue.textContent = lineNumber || '-';
-    }
-  };
+  document.head.appendChild(script);
+  console.log('调试工具脚本元素已添加到文档');
 }
 
 /**
- * 显示所有行号标记
+ * 初始化调试工具
  */
-function showLineMarkers() {
-  // 移除已有的行号标记
-  const existingMarkers = document.querySelectorAll('.debug-line-marker');
-  existingMarkers.forEach(marker => marker.remove());
-
-  // 为所有ID可以解析为数字的元素添加行号标记
-  const lineElements = contentElement.querySelectorAll('[id]');
-  lineElements.forEach(element => {
-    // 尝试将ID直接解析为数字
-    const lineNumber = element.id;
-    if (!lineNumber || isNaN(parseInt(lineNumber, 10))) return;
-
-    const marker = document.createElement('span');
-    marker.className = 'debug-line-marker';
-    marker.textContent = `L${lineNumber}`;
-    marker.style.position = 'absolute';
-    marker.style.left = '0';
-    marker.style.backgroundColor = 'rgba(255, 0, 0, 0.7)';
-    marker.style.color = 'white';
-    marker.style.padding = '2px 5px';
-    marker.style.fontSize = '10px';
-    marker.style.borderRadius = '3px';
-    marker.style.zIndex = '999';
-    marker.style.pointerEvents = 'none';
-
-    // 为元素添加相对定位，以便绝对定位的标记能够正确显示
-    const originalPosition = window.getComputedStyle(element).position;
-    if (originalPosition === 'static') {
-      element.style.position = 'relative';
-    }
-
-    // 添加边框以突出显示元素
-    element.style.outline = '1px dashed rgba(255, 0, 0, 0.5)';
-
-    element.appendChild(marker);
-
-    // 添加点击事件，点击时高亮显示元素
-    element.addEventListener('click', function(e) {
-      if (debugMode) {
-        e.stopPropagation();
-        highlightElement(this, 1000);
-        console.log(`点击了行号 ${lineNumber} 的元素:`, this);
-      }
+function initializeDebugTools() {
+  if (window.debugTools && window.debugTools.initDebugTools) {
+    window.debugTools.initDebugTools({
+      contentElement: contentElement,
+      scrollToLine: scrollToLine,
+      scrollStrategies: SCROLL_STRATEGIES,
+      currentScrollStrategy: currentScrollStrategy,
+      enabled: debugToolsConfig.enabled  // 传递启用状态
     });
-  });
-
-  console.log(`已显示 ${lineElements.length} 个行号标记`);
+  }
 }
 
 /**
- * 隐藏所有行号标记
+ * 此函数已不再使用，调试工具的显示/隐藏通过修改 debugToolsConfig.enabled 来控制
+ * 保留此函数是为了兼容性，避免可能的引用错误
  */
-function hideLineMarkers() {
-  // 移除所有行号标记
-  const markers = document.querySelectorAll('.debug-line-marker');
-  markers.forEach(marker => marker.remove());
-
-  // 恢复元素样式
-  const lineElements = contentElement.querySelectorAll('[id]');
-  lineElements.forEach(element => {
-    // 只处理ID为数字的元素
-    if (!isNaN(parseInt(element.id, 10))) {
-      element.style.outline = '';
-    }
-  });
-
-  console.log('已隐藏所有行号标记');
+function toggleDebugTools() {
+  console.log('调试工具的显示/隐藏现在通过修改 debugToolsConfig.enabled 来控制');
+  console.log('请在代码中设置 debugToolsConfig.enabled = true/false 来显示/隐藏调试工具');
 }
+
+/**
+ * 调整页面布局
+ *
+ * 根据窗口大小和目录显示状态调整页面布局
+ */
+function adjustLayout() {
+  // 检查必要的元素是否存在
+  if (!container || !tocContainer) {
+    console.warn('adjustLayout: 必要的元素不存在，无法调整布局');
+    return;
+  }
+
+  try {
+    // 获取窗口宽度
+    const windowWidth = window.innerWidth;
+
+    // 检查目录是否可见
+    const isTocVisible = !tocContainer.classList.contains('hidden');
+
+    // 如果窗口宽度小于 768px（移动设备），强制隐藏目录
+    if (windowWidth < 768 && isTocVisible) {
+      console.log('窗口宽度小于 768px，强制隐藏目录');
+      hideToc();
+    }
+
+    // 调整内容区域的最大宽度
+    if (isTocVisible) {
+      // 目录可见时，内容区域宽度减小
+      container.style.maxWidth = `${Math.min(windowWidth - 300, 1200)}px`;
+    } else {
+      // 目录隐藏时，内容区域可以更宽
+      container.style.maxWidth = `${Math.min(windowWidth - 100, 1200)}px`;
+    }
+
+    console.log(`布局已调整: 窗口宽度=${windowWidth}px, 目录${isTocVisible ? '可见' : '隐藏'}`);
+  } catch (error) {
+    console.error('调整布局时出错:', error);
+  }
+}
+
