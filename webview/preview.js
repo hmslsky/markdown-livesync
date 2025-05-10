@@ -39,6 +39,9 @@ const tocConfig = {
   }
 };
 
+// 调试模式
+let debugMode = false;
+
 // 初始化
 document.addEventListener('DOMContentLoaded', () => {
   // 加载Markdown内容
@@ -52,6 +55,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // 建立WebSocket连接
   connectWebSocket();
+
+  // 添加调试模式切换按钮
+  addDebugTools();
 });
 
 /**
@@ -113,12 +119,11 @@ function renderToc(tocItems) {
   let controlsHtml = `
     <div id="toc-controls">
       <div id="toc-level-control">
-        <span id="toc-level-label">快捷操作:</span>
-        <button class="toc-level-button ${expandLevel === 0 ? 'active' : ''}" data-level="0">全部折叠</button>
-        <button class="toc-level-button ${expandLevel === 1 ? 'active' : ''}" data-level="1">1级</button>
-        <button class="toc-level-button ${expandLevel === 2 ? 'active' : ''}" data-level="2">2级</button>
-        <button class="toc-level-button ${expandLevel === 3 ? 'active' : ''}" data-level="3">3级</button>
-        <button class="toc-level-button ${expandLevel === -1 ? 'active' : ''}" data-level="-1">全部展开</button>
+        <span id="toc-level-label">Actions:</span>
+        <button class="toc-level-button ${expandLevel === 1 ? 'active' : ''}" data-level="1">Level 1</button>
+        <button class="toc-level-button ${expandLevel === 2 ? 'active' : ''}" data-level="2">Level 2</button>
+        <button class="toc-level-button ${expandLevel === 3 ? 'active' : ''}" data-level="3">Level 3</button>
+        <button class="toc-level-button ${expandLevel === -1 ? 'active' : ''}" data-level="-1">Expand All</button>
       </div>
     </div>
   `;
@@ -248,14 +253,36 @@ function renderToc(tocItems) {
 
       // 获取链接的重要属性
       const targetId = link.getAttribute('href').substring(1); // 去掉开头的#
-      console.log(`目录项点击: 目标ID = ${targetId}`);
+      console.log(`目录项点击: 目标ID = ${targetId}, 链接文本: ${link.textContent}`);
 
       // 只通过ID查找元素
-      const targetElement = document.getElementById(targetId);
+      let targetElement = document.getElementById(targetId);
+
+      // 如果找不到目标元素，尝试通过标题文本查找
+      if (!targetElement) {
+        console.log(`未找到ID为 ${targetId} 的元素，尝试通过文本查找...`);
+        const headingText = link.textContent.trim();
+        const headings = contentElement.querySelectorAll('h1, h2, h3, h4, h5, h6');
+
+        for (const heading of headings) {
+          if (heading.textContent.trim() === headingText) {
+            console.log(`通过文本找到匹配的标题元素: ${heading.tagName}`);
+            targetElement = heading;
+
+            // 确保标题有ID
+            if (!heading.id) {
+              heading.id = targetId;
+              console.log(`为找到的标题添加ID: ${targetId}`);
+            }
+
+            break;
+          }
+        }
+      }
 
       // 如果找到了目标元素
       if (targetElement) {
-        console.log(`找到目标元素: ${targetElement.tagName}`);
+        console.log(`找到目标元素: ${targetElement.tagName}, ID: ${targetElement.id}`);
 
         // 滚动到目标元素
         // behavior: 'smooth' 使滚动平滑进行
@@ -265,12 +292,17 @@ function renderToc(tocItems) {
           block: 'start'
         });
 
+        // 高亮显示目标元素，使其更容易被注意到
+        highlightElement(targetElement);
+
         // 显示指示器，提示用户已跳转到哪个标题
         showHeadingIndicator(targetElement);
 
         console.log(`已滚动到目标元素`);
       } else {
-        console.log(`未找到ID为 ${targetId} 的元素`);
+        console.log(`未能找到匹配的标题元素，无法跳转`);
+        // 显示错误提示
+        alert(`无法找到标题: ${link.textContent}`);
       }
     });
   });
@@ -474,7 +506,7 @@ function addIdsToHeadings() {
     if (!heading.id) {
       // 使用带索引的ID格式
       heading.id = `heading-${index + 1}`;
-      console.log(`为标题添加ID: ${heading.id}`);
+      console.log(`为标题添加ID: ${heading.id}, 内容: ${heading.textContent.trim()}`);
     }
   });
 
@@ -494,14 +526,43 @@ function addIdsToHeadings() {
 
 /**
  * 高亮元素
+ *
+ * 为元素添加高亮效果，使其更容易被用户注意到
+ *
+ * @param {HTMLElement} element - 要高亮的元素
+ * @param {number} duration - 高亮持续时间（毫秒），默认3000ms
  */
-function highlightElement(element) {
+function highlightElement(element, duration = 3000) {
+  // 先移除可能存在的高亮类，确保动画可以重新触发
+  element.classList.remove('highlight-line');
+
+  // 强制重绘
+  void element.offsetWidth;
+
+  // 添加高亮类
   element.classList.add('highlight-line');
 
-  // 3秒后移除高亮
+  // 添加一个临时的边框，使高亮更明显
+  const originalBorder = element.style.border;
+  const originalBackground = element.style.backgroundColor;
+
+  element.style.border = '2px solid #ff9800';
+  element.style.backgroundColor = '#fffbdd';
+
+  // 指定时间后移除高亮效果
   setTimeout(() => {
     element.classList.remove('highlight-line');
-  }, 3000);
+    element.style.border = originalBorder;
+
+    // 使用过渡效果平滑恢复原始背景色
+    element.style.transition = 'background-color 1s ease';
+    element.style.backgroundColor = originalBackground;
+
+    // 过渡完成后移除过渡样式
+    setTimeout(() => {
+      element.style.transition = '';
+    }, 1000);
+  }, duration);
 }
 
 /**
@@ -585,9 +646,13 @@ function showTocPanel() {
  * 滚动到指定行
  *
  * 这个函数负责将预览内容滚动到与编辑器中指定行号对应的位置。
- * 根据优化后的规则，查找小于该光标行号的最大块元素位置，然后滚动到该位置。
- * 每个块元素记录行号，行号不连续，考虑块元素内内容的换行符。
- * 代码块的开始和结束标记以及代码块内的内容都会被计入行号统计。
+ * 使用多种策略尝试找到最匹配的元素，并滚动到该位置。
+ *
+ * 改进的定位策略：
+ * 1. 首先尝试精确匹配行号
+ * 2. 然后尝试查找包含该行号的范围元素
+ * 3. 接着查找最接近的行号元素（优先选择小于等于目标行号的最大行号）
+ * 4. 最后回退到基于比例的滚动方法
  *
  * @param {number} lineNumber - 编辑器中的行号
  * @param {boolean} highlight - 是否高亮显示目标元素，默认为false
@@ -598,172 +663,194 @@ function scrollToLine(lineNumber, highlight = false) {
   // 显示当前行号指示器，让用户知道当前光标位置
   showLineIndicator(lineNumber);
 
-  // 获取所有带有行号属性的块元素
-  const blockElements = contentElement.querySelectorAll('[data-line-start][data-line-end]');
-
-  if (blockElements.length > 0) {
-    console.log(`找到 ${blockElements.length} 个带有行号范围的块元素`);
-
-    // 查找小于等于当前光标行号的最大行号的块元素
-    let targetElement = null;
-    let maxLineNumber = 0;
-
-    // 首先尝试查找精确匹配当前行号的元素
-    let exactMatchElement = null;
-    for (const element of blockElements) {
-      const elementLine = parseInt(element.getAttribute('data-line'), 10);
-      if (elementLine === lineNumber) {
-        exactMatchElement = element;
-        console.log(`找到精确匹配行号 ${lineNumber} 的元素: ${element.tagName}`);
-        break;
-      }
-    }
-
-    // 如果找到了精确匹配的元素，直接使用它
-    if (exactMatchElement) {
-      targetElement = exactMatchElement;
-    } else {
-      // 尝试查找包含当前行号的块元素
-      for (const element of blockElements) {
-        const startLine = parseInt(element.getAttribute('data-line-start'), 10);
-        const endLine = parseInt(element.getAttribute('data-line-end'), 10);
-
-        // 如果当前行号在块元素的行号范围内，直接使用这个元素
-        if (lineNumber >= startLine && lineNumber <= endLine) {
-          console.log(`找到包含行 ${lineNumber} 的块元素: ${element.tagName}, 范围: ${startLine}-${endLine}`);
-          targetElement = element;
-          break;
-        }
-
-        // 如果块元素的起始行号小于等于当前行号，且大于已找到的最大行号
-        if (startLine <= lineNumber && startLine > maxLineNumber) {
-          maxLineNumber = startLine;
-          targetElement = element;
-        }
-      }
-    }
-
-    // 如果找到了目标元素
-    if (targetElement) {
-      // 获取元素的行号信息
-      const startLine = targetElement.hasAttribute('data-line-start')
-        ? parseInt(targetElement.getAttribute('data-line-start'), 10)
-        : parseInt(targetElement.getAttribute('data-line'), 10);
-
-      const endLine = targetElement.hasAttribute('data-line-end')
-        ? parseInt(targetElement.getAttribute('data-line-end'), 10)
-        : startLine;
-
-      console.log(`滚动到块元素: ${targetElement.tagName}, 行号范围: ${startLine}-${endLine}`);
-
-      // 滚动到目标元素
-      targetElement.scrollIntoView({
-        behavior: 'smooth',
-        block: 'center'
-      });
-
-      // 如果需要高亮显示
-      if (highlight) {
-        highlightElement(targetElement);
-      }
-
-      return;
-    }
+  // 如果行号无效，使用默认值
+  if (!lineNumber || lineNumber < 1) {
+    console.warn(`无效的行号: ${lineNumber}，使用默认值1`);
+    lineNumber = 1;
   }
 
-  // 如果没有找到合适的块元素，尝试使用行号标记
-  const lineMarkers = contentElement.querySelectorAll('.line-marker[data-line]');
+  // 记录开始查找的时间，用于性能分析
+  const startTime = performance.now();
 
-  if (lineMarkers.length > 0) {
-    console.log(`找到 ${lineMarkers.length} 个行号标记元素`);
-
-    // 首先尝试查找精确匹配当前行号的标记
-    let exactMatchMarker = null;
-    for (const marker of lineMarkers) {
-      const markerLine = parseInt(marker.getAttribute('data-line'), 10);
-      if (markerLine === lineNumber) {
-        exactMatchMarker = marker;
-        console.log(`找到精确匹配行号 ${lineNumber} 的标记`);
-        break;
-      }
-    }
-
-    // 如果找到了精确匹配的标记，直接使用它
-    if (exactMatchMarker) {
-      exactMatchMarker.scrollIntoView({
-        behavior: 'smooth',
-        block: 'center'
-      });
-      return;
-    }
-
-    // 如果没有找到精确匹配的标记，查找小于等于当前光标行号的最大行号的标记
-    let targetMarker = null;
-    let maxLineNumber = 0;
-
-    for (const marker of lineMarkers) {
-      const markerLine = parseInt(marker.getAttribute('data-line'), 10);
-
-      // 如果标记的行号小于等于当前行号，且大于已找到的最大行号
-      if (markerLine <= lineNumber && markerLine > maxLineNumber) {
-        maxLineNumber = markerLine;
-        targetMarker = marker;
-      }
-    }
-
-    // 如果找到了目标标记
-    if (targetMarker) {
-      const markerLine = parseInt(targetMarker.getAttribute('data-line'), 10);
-      console.log(`滚动到行号标记: 行号: ${markerLine}`);
-
-      // 滚动到目标标记
-      targetMarker.scrollIntoView({
-        behavior: 'smooth',
-        block: 'center'
-      });
-
-      return;
-    }
-  }
-
-  // 尝试查找精确匹配当前行号的任何元素
+  // 策略1: 尝试查找精确匹配当前行号的任何元素
   const exactLineElements = contentElement.querySelectorAll(`[data-line="${lineNumber}"]`);
   if (exactLineElements.length > 0) {
     const exactElement = exactLineElements[0];
-    console.log(`找到精确匹配行号 ${lineNumber} 的元素: ${exactElement.tagName}`);
+    console.log(`策略1成功: 找到精确匹配行号 ${lineNumber} 的元素: ${exactElement.tagName}`);
 
-    exactElement.scrollIntoView({
-      behavior: 'smooth',
-      block: 'center'
-    });
-
-    if (highlight) {
-      highlightElement(exactElement);
-    }
-
+    scrollToElement(exactElement, highlight);
+    logPerformance(startTime, "策略1");
     return;
   }
 
-  // 如果上述方法都失败，尝试使用ID为line-{lineNumber}的元素
+  // 策略2: 尝试使用ID为line-{lineNumber}的元素
   const lineIdElement = document.getElementById(`line-${lineNumber}`);
   if (lineIdElement) {
-    console.log(`找到ID为line-${lineNumber}的元素`);
+    console.log(`策略2成功: 找到ID为line-${lineNumber}的元素`);
 
-    lineIdElement.scrollIntoView({
-      behavior: 'smooth',
-      block: 'center'
-    });
-
-    if (highlight) {
-      highlightElement(lineIdElement);
-    }
-
+    scrollToElement(lineIdElement, highlight);
+    logPerformance(startTime, "策略2");
     return;
   }
 
-  // 如果所有方法都失败，回退到比例方法
+  // 策略3: 查找包含当前行号的块元素
+  const blockElements = contentElement.querySelectorAll('[data-line-start][data-line-end]');
+  if (blockElements.length > 0) {
+    console.log(`找到 ${blockElements.length} 个带有行号范围的块元素`);
+
+    // 尝试查找包含当前行号的块元素
+    for (const element of blockElements) {
+      const startLine = parseInt(element.getAttribute('data-line-start'), 10);
+      const endLine = parseInt(element.getAttribute('data-line-end'), 10);
+
+      // 如果当前行号在块元素的行号范围内，直接使用这个元素
+      if (lineNumber >= startLine && lineNumber <= endLine) {
+        console.log(`策略3成功: 找到包含行 ${lineNumber} 的块元素: ${element.tagName}, 范围: ${startLine}-${endLine}`);
+
+        scrollToElement(element, highlight);
+        logPerformance(startTime, "策略3");
+        return;
+      }
+    }
+  }
+
+  // 策略4: 查找最接近的行号元素（优先小于等于目标行号的最大行号）
+  let closestElement = null;
+  let closestDistance = Number.MAX_SAFE_INTEGER;
+  let maxLineBelow = 0;
+  let maxLineBelowElement = null;
+
+  // 收集所有带有行号属性的元素
+  const allLineElements = contentElement.querySelectorAll('[data-line]');
+  console.log(`找到 ${allLineElements.length} 个带有行号属性的元素`);
+
+  for (const element of allLineElements) {
+    const elementLine = parseInt(element.getAttribute('data-line'), 10);
+    if (isNaN(elementLine)) continue;
+
+    // 计算与目标行号的距离
+    const distance = Math.abs(elementLine - lineNumber);
+
+    // 更新最接近的元素
+    if (distance < closestDistance) {
+      closestDistance = distance;
+      closestElement = element;
+    }
+
+    // 更新小于等于目标行号的最大行号元素
+    if (elementLine <= lineNumber && elementLine > maxLineBelow) {
+      maxLineBelow = elementLine;
+      maxLineBelowElement = element;
+    }
+  }
+
+  // 优先使用小于等于目标行号的最大行号元素
+  if (maxLineBelowElement) {
+    console.log(`策略4成功: 找到小于等于目标行号的最大行号元素: 行号 ${maxLineBelow}`);
+
+    scrollToElement(maxLineBelowElement, highlight);
+    logPerformance(startTime, "策略4a");
+    return;
+  }
+
+  // 如果没有找到小于等于目标行号的元素，使用最接近的元素
+  if (closestElement) {
+    const closestLine = parseInt(closestElement.getAttribute('data-line'), 10);
+    console.log(`策略4成功: 找到最接近行号 ${lineNumber} 的元素: 行号 ${closestLine}, 距离: ${closestDistance}`);
+
+    scrollToElement(closestElement, highlight);
+    logPerformance(startTime, "策略4b");
+    return;
+  }
+
+  // 策略5: 使用行号标记
+  const lineMarkers = contentElement.querySelectorAll('.line-marker[data-line]');
+  if (lineMarkers.length > 0) {
+    console.log(`找到 ${lineMarkers.length} 个行号标记元素`);
+
+    // 查找最接近的行号标记
+    let closestMarker = null;
+    let closestDistance = Number.MAX_SAFE_INTEGER;
+    let maxLineBelow = 0;
+    let maxLineBelowMarker = null;
+
+    for (const marker of lineMarkers) {
+      const markerLine = parseInt(marker.getAttribute('data-line'), 10);
+      if (isNaN(markerLine)) continue;
+
+      // 计算与目标行号的距离
+      const distance = Math.abs(markerLine - lineNumber);
+
+      // 更新最接近的标记
+      if (distance < closestDistance) {
+        closestDistance = distance;
+        closestMarker = marker;
+      }
+
+      // 更新小于等于目标行号的最大行号标记
+      if (markerLine <= lineNumber && markerLine > maxLineBelow) {
+        maxLineBelow = markerLine;
+        maxLineBelowMarker = marker;
+      }
+    }
+
+    // 优先使用小于等于目标行号的最大行号标记
+    if (maxLineBelowMarker) {
+      console.log(`策略5成功: 找到小于等于目标行号的最大行号标记: 行号 ${maxLineBelow}`);
+
+      scrollToElement(maxLineBelowMarker, highlight);
+      logPerformance(startTime, "策略5a");
+      return;
+    }
+
+    // 如果没有找到小于等于目标行号的标记，使用最接近的标记
+    if (closestMarker) {
+      const closestLine = parseInt(closestMarker.getAttribute('data-line'), 10);
+      console.log(`策略5成功: 找到最接近行号 ${lineNumber} 的标记: 行号 ${closestLine}, 距离: ${closestDistance}`);
+
+      scrollToElement(closestMarker, highlight);
+      logPerformance(startTime, "策略5b");
+      return;
+    }
+  }
+
+  // 策略6: 如果所有方法都失败，回退到比例方法
   console.log('所有精确定位方法都失败，回退到比例方法');
   scrollToLineByRatio(lineNumber);
+  logPerformance(startTime, "策略6");
+}
+
+/**
+ * 滚动到指定元素
+ *
+ * @param {HTMLElement} element - 要滚动到的元素
+ * @param {boolean} highlight - 是否高亮显示元素
+ */
+function scrollToElement(element, highlight = false) {
+  if (!element) return;
+
+  // 滚动到元素
+  element.scrollIntoView({
+    behavior: 'smooth',
+    block: 'center'
+  });
+
+  // 如果需要高亮显示
+  if (highlight) {
+    highlightElement(element);
+  }
+}
+
+/**
+ * 记录性能指标
+ *
+ * @param {number} startTime - 开始时间
+ * @param {string} strategy - 使用的策略
+ */
+function logPerformance(startTime, strategy) {
+  const endTime = performance.now();
+  const duration = endTime - startTime;
+  console.log(`${strategy} 执行时间: ${duration.toFixed(2)}ms`);
 }
 
 /**
@@ -807,10 +894,17 @@ function showLineIndicator(lineNumber) {
 
 /**
  * 显示标题指示器
+ *
+ * 在页面顶部显示一个指示器，提示用户已跳转到哪个标题
+ *
+ * @param {HTMLElement} headingElement - 标题元素
  */
 function showHeadingIndicator(headingElement) {
   // 获取标题文本
   const headingText = headingElement.textContent.trim();
+
+  // 获取标题级别（h1-h6）
+  const headingLevel = headingElement.tagName.toLowerCase();
 
   // 移除旧的指示器
   const oldIndicator = document.getElementById('heading-indicator');
@@ -821,35 +915,67 @@ function showHeadingIndicator(headingElement) {
   // 创建新的指示器
   const indicator = document.createElement('div');
   indicator.id = 'heading-indicator';
-  indicator.textContent = `跳转到: ${headingText}`;
+
+  // 根据标题级别添加不同的前缀
+  let prefix = '';
+  switch (headingLevel) {
+    case 'h1': prefix = '📌 '; break;
+    case 'h2': prefix = '📍 '; break;
+    default: prefix = '🔖 '; break;
+  }
+
+  indicator.textContent = `${prefix}跳转到: ${headingText}`;
+
+  // 设置样式
   indicator.style.position = 'fixed';
   indicator.style.top = '10px';
   indicator.style.left = '50%';
   indicator.style.transform = 'translateX(-50%)';
-  indicator.style.backgroundColor = 'rgba(0, 0, 0, 0.7)';
+  indicator.style.backgroundColor = 'rgba(3, 102, 214, 0.9)';
   indicator.style.color = 'white';
-  indicator.style.padding = '5px 10px';
-  indicator.style.borderRadius = '3px';
-  indicator.style.fontSize = '12px';
+  indicator.style.padding = '8px 15px';
+  indicator.style.borderRadius = '5px';
+  indicator.style.fontSize = '14px';
+  indicator.style.fontWeight = 'bold';
   indicator.style.zIndex = '9999';
-  indicator.style.opacity = '0.8';
+  indicator.style.opacity = '0.95';
   indicator.style.maxWidth = '80%';
   indicator.style.overflow = 'hidden';
   indicator.style.textOverflow = 'ellipsis';
   indicator.style.whiteSpace = 'nowrap';
+  indicator.style.boxShadow = '0 2px 10px rgba(0, 0, 0, 0.3)';
+  indicator.style.border = '1px solid rgba(255, 255, 255, 0.2)';
+
+  // 添加动画效果
+  indicator.style.animation = 'indicator-slide-in 0.3s ease-out';
+
+  // 添加样式到文档
+  const style = document.createElement('style');
+  style.textContent = `
+    @keyframes indicator-slide-in {
+      from { transform: translate(-50%, -20px); opacity: 0; }
+      to { transform: translate(-50%, 0); opacity: 0.95; }
+    }
+
+    @keyframes indicator-slide-out {
+      from { transform: translate(-50%, 0); opacity: 0.95; }
+      to { transform: translate(-50%, -20px); opacity: 0; }
+    }
+  `;
+  document.head.appendChild(style);
 
   document.body.appendChild(indicator);
 
-  // 3秒后淡出
+  // 4秒后淡出
   setTimeout(() => {
-    indicator.style.transition = 'opacity 1s';
-    indicator.style.opacity = '0';
+    indicator.style.animation = 'indicator-slide-out 0.5s ease-in forwards';
 
     // 淡出后移除
     setTimeout(() => {
       indicator.remove();
-    }, 1000);
-  }, 3000);
+      style.remove();
+    }, 500);
+  }, 4000);
 }
 
 /**
@@ -903,13 +1029,20 @@ function connectWebSocket() {
     startHeartbeat();
   };
 
+  // 保存最后一次光标位置
+  let lastCursorLineNumber = null;
+
   ws.onmessage = (event) => {
     try {
       const message = JSON.parse(event.data);
-      console.log('收到WebSocket消息:', message);
+      console.log('收到WebSocket消息:', message.type);
 
       if (message.type === 'update') {
         console.log('收到文档更新');
+
+        // 记录更新前的滚动位置和光标位置
+        const scrollPosition = document.documentElement.scrollTop || document.body.scrollTop;
+        const currentCursorLine = lastCursorLineNumber;
 
         // 更新内容
         contentElement.innerHTML = message.html;
@@ -920,18 +1053,39 @@ function connectWebSocket() {
         // 更新目录
         renderToc(message.toc);
 
-        // 保持滚动位置
-        const scrollPosition = document.documentElement.scrollTop || document.body.scrollTop;
-        window.scrollTo(0, scrollPosition);
+        // 使用更长的延迟确保DOM完全更新
+        setTimeout(() => {
+          // 如果有光标位置，优先滚动到光标位置
+          if (currentCursorLine) {
+            console.log(`文档更新后恢复光标位置: 行 ${currentCursorLine}`);
+            scrollToLine(currentCursorLine, false);
+          } else {
+            // 否则保持原来的滚动位置
+            console.log(`文档更新后恢复滚动位置: ${scrollPosition}px`);
+            window.scrollTo(0, scrollPosition);
+          }
+        }, 100); // 增加延迟到100ms
       }
       else if (message.type === 'cursorMove') {
         console.log(`收到光标位置更新: 行 ${message.lineNumber}`);
 
-        // 滚动到光标位置，不高亮显示
-        // 使用setTimeout确保DOM已完全加载
+        // 保存最后一次光标位置
+        lastCursorLineNumber = message.lineNumber;
+
+        // 使用更长的延迟确保DOM已完全加载
+        // 对于光标移动，使用更长的延迟，因为这可能发生在文档更新后
         setTimeout(() => {
-          scrollToLine(message.lineNumber, false);
-        }, 10);
+          // 检查DOM是否已经准备好
+          if (contentElement.querySelectorAll('[data-line]').length > 0) {
+            scrollToLine(message.lineNumber, false);
+          } else {
+            console.warn('DOM元素尚未准备好，无法滚动到指定行');
+            // 再次尝试，使用更长的延迟
+            setTimeout(() => {
+              scrollToLine(message.lineNumber, false);
+            }, 300);
+          }
+        }, 100);
       }
       else if (message.type === 'pong') {
         console.log('收到服务器心跳响应');
@@ -1007,4 +1161,152 @@ function sendPing() {
     console.log('发送ping到服务器');
     ws.send(JSON.stringify({ type: 'ping' }));
   }
+}
+
+/**
+ * 添加调试工具
+ */
+function addDebugTools() {
+  // 创建调试工具容器
+  const debugTools = document.createElement('div');
+  debugTools.id = 'debug-tools';
+  debugTools.style.position = 'fixed';
+  debugTools.style.bottom = '10px';
+  debugTools.style.left = '10px';
+  debugTools.style.zIndex = '9999';
+  debugTools.style.backgroundColor = 'rgba(0, 0, 0, 0.7)';
+  debugTools.style.color = 'white';
+  debugTools.style.padding = '5px';
+  debugTools.style.borderRadius = '5px';
+  debugTools.style.fontSize = '12px';
+  debugTools.style.display = 'flex';
+  debugTools.style.flexDirection = 'column';
+  debugTools.style.gap = '5px';
+
+  // 添加调试模式切换按钮
+  const debugToggle = document.createElement('button');
+  debugToggle.textContent = '显示行号标记';
+  debugToggle.style.padding = '5px 10px';
+  debugToggle.style.cursor = 'pointer';
+  debugToggle.style.backgroundColor = '#4CAF50';
+  debugToggle.style.border = 'none';
+  debugToggle.style.borderRadius = '3px';
+  debugToggle.style.color = 'white';
+
+  debugToggle.addEventListener('click', () => {
+    debugMode = !debugMode;
+    debugToggle.textContent = debugMode ? '隐藏行号标记' : '显示行号标记';
+    debugToggle.style.backgroundColor = debugMode ? '#f44336' : '#4CAF50';
+
+    if (debugMode) {
+      showLineMarkers();
+    } else {
+      hideLineMarkers();
+    }
+  });
+
+  // 添加跳转到行按钮
+  const jumpContainer = document.createElement('div');
+  jumpContainer.style.display = 'flex';
+  jumpContainer.style.alignItems = 'center';
+  jumpContainer.style.gap = '5px';
+
+  const lineInput = document.createElement('input');
+  lineInput.type = 'number';
+  lineInput.min = '1';
+  lineInput.placeholder = '行号';
+  lineInput.style.width = '60px';
+  lineInput.style.padding = '5px';
+
+  const jumpButton = document.createElement('button');
+  jumpButton.textContent = '跳转';
+  jumpButton.style.padding = '5px 10px';
+  jumpButton.style.cursor = 'pointer';
+  jumpButton.style.backgroundColor = '#2196F3';
+  jumpButton.style.border = 'none';
+  jumpButton.style.borderRadius = '3px';
+  jumpButton.style.color = 'white';
+
+  jumpButton.addEventListener('click', () => {
+    const lineNumber = parseInt(lineInput.value, 10);
+    if (!isNaN(lineNumber) && lineNumber > 0) {
+      scrollToLine(lineNumber, true);
+    }
+  });
+
+  jumpContainer.appendChild(lineInput);
+  jumpContainer.appendChild(jumpButton);
+
+  // 添加元素到调试工具容器
+  debugTools.appendChild(debugToggle);
+  debugTools.appendChild(jumpContainer);
+
+  // 添加到文档
+  document.body.appendChild(debugTools);
+}
+
+/**
+ * 显示所有行号标记
+ */
+function showLineMarkers() {
+  // 移除已有的行号标记
+  const existingMarkers = document.querySelectorAll('.debug-line-marker');
+  existingMarkers.forEach(marker => marker.remove());
+
+  // 为所有带有data-line属性的元素添加行号标记
+  const lineElements = contentElement.querySelectorAll('[data-line]');
+  lineElements.forEach(element => {
+    const lineNumber = element.getAttribute('data-line');
+    const marker = document.createElement('span');
+    marker.className = 'debug-line-marker';
+    marker.textContent = `L${lineNumber}`;
+    marker.style.position = 'absolute';
+    marker.style.left = '0';
+    marker.style.backgroundColor = 'rgba(255, 0, 0, 0.7)';
+    marker.style.color = 'white';
+    marker.style.padding = '2px 5px';
+    marker.style.fontSize = '10px';
+    marker.style.borderRadius = '3px';
+    marker.style.zIndex = '999';
+    marker.style.pointerEvents = 'none';
+
+    // 为元素添加相对定位，以便绝对定位的标记能够正确显示
+    const originalPosition = window.getComputedStyle(element).position;
+    if (originalPosition === 'static') {
+      element.style.position = 'relative';
+    }
+
+    // 添加边框以突出显示元素
+    element.style.outline = '1px dashed rgba(255, 0, 0, 0.5)';
+
+    element.appendChild(marker);
+
+    // 添加点击事件，点击时高亮显示元素
+    element.addEventListener('click', function(e) {
+      if (debugMode) {
+        e.stopPropagation();
+        highlightElement(this, 1000);
+        console.log(`点击了行号 ${lineNumber} 的元素:`, this);
+      }
+    });
+  });
+
+  console.log(`已显示 ${lineElements.length} 个行号标记`);
+}
+
+/**
+ * 隐藏所有行号标记
+ */
+function hideLineMarkers() {
+  // 移除所有行号标记
+  const markers = document.querySelectorAll('.debug-line-marker');
+  markers.forEach(marker => marker.remove());
+
+  // 恢复元素样式
+  const lineElements = contentElement.querySelectorAll('[data-line]');
+  lineElements.forEach(element => {
+    element.style.outline = '';
+  });
+
+  console.log('已隐藏所有行号标记');
 }

@@ -321,13 +321,23 @@ img {
 
 /* 高亮当前行 */
 .highlight-line {
-  background-color: #fffbdd;
-  animation: highlight-fade 2s ease-out;
+  background-color: #fffbdd !important;
+  animation: highlight-pulse 2s ease-out infinite;
+  position: relative;
+  z-index: 1;
+  border-radius: 3px;
+  box-shadow: 0 0 8px rgba(255, 152, 0, 0.5);
 }
 
 @keyframes highlight-fade {
   from { background-color: #fffbdd; }
   to { background-color: transparent; }
+}
+
+@keyframes highlight-pulse {
+  0% { box-shadow: 0 0 5px rgba(255, 152, 0, 0.5); }
+  50% { box-shadow: 0 0 15px rgba(255, 152, 0, 0.8); }
+  100% { box-shadow: 0 0 5px rgba(255, 152, 0, 0.5); }
 }
 
 /* 响应式设计 - 完全重写 */

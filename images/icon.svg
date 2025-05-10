@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg
+   width="128"
+   height="128"
+   viewBox="0 0 33.866666 33.866666"
+   version="1.1"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+  <g>
+    <!-- 背景圆形 -->
+    <circle
+       style="fill:#2b7de1;fill-opacity:1;stroke:none;stroke-width:0.529167;stroke-linecap:round;stroke-linejoin:round"
+       cx="16.933332"
+       cy="16.933332"
+       r="16.933332" />
+    
+    <!-- Markdown "M" -->
+    <path
+       style="fill:#ffffff;fill-opacity:1;stroke:none;stroke-width:0.264583px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+       d="M 8.4666665,8.4666665 V 25.4 H 11.641666 V 14.552083 l 3.175,7.9375 3.175,-7.9375 V 25.4 h 3.175 V 8.4666665 h -3.175 L 14.816666,16.404166 11.641666,8.4666665 Z" />
+    
+    <!-- 同步箭头 -->
+    <path
+       style="fill:#ffffff;fill-opacity:1;stroke:none;stroke-width:0.264583px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+       d="m 25.4,12.7 c 1.5875,0 2.645833,0.529166 3.175,1.5875 0.529167,1.058333 0.529167,2.116666 0,3.175 -0.529167,1.058334 -1.5875,1.5875 -3.175,1.5875 v 2.116666 c 1.5875,0 3.175,-0.529166 4.233333,-1.5875 1.058333,-1.058333 1.5875,-2.645833 1.5875,-4.233333 0,-1.5875 -0.529167,-3.175 -1.5875,-4.233333 C 28.575,9.525 26.9875,8.9958335 25.4,8.9958335 Z" />
+    <path
+       style="fill:#ffffff;fill-opacity:1;stroke:none;stroke-width:0.264583px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1"
+       d="m 25.4,21.166666 v -2.116666 c -1.5875,0 -2.645833,-0.529166 -3.175,-1.5875 -0.529167,-1.058334 -0.529167,-2.116667 0,-3.175 0.529167,-1.058334 1.5875,-1.5875 3.175,-1.5875 V 10.583333 c -1.5875,0 -3.175,0.529167 -4.233333,1.5875 -1.058333,1.058333 -1.5875,2.645833 -1.5875,4.233333 0,1.5875 0.529167,3.175 1.5875,4.233334 1.058333,1.058333 2.645833,1.5875 4.233333,1.5875 z" />
+  </g>
+</svg>
