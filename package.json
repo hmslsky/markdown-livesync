@@ -2,7 +2,7 @@
   "name": "markdown-livesync",
   "displayName": "Markdown LiveSync",
   "description": "实时同步Markdown编辑与浏览器预览，支持目录导航和光标同步",
-  "version": "0.1.44",
+  "version": "0.1.48",
   "publisher": "hmslsky",
   "author": "hmslsky",
   "icon": "images/icon.png",
@@ -56,6 +56,11 @@
           "type": "boolean",
           "default": true,
           "description": "是否默认显示目录导航"
+        },
+        "markdown-livesync.highlightOnScroll": {
+          "type": "boolean",
+          "default": false,
+          "description": "滚动到指定位置时是否高亮显示目标元素"
         },
         "markdown-livesync.debug": {
           "type": "boolean",

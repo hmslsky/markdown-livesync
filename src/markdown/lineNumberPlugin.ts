@@ -3,6 +3,7 @@
  *
  * 这个插件在 Markdown 解析过程中为生成的 HTML 元素添加行号信息。
  * 它跟踪 Markdown 源文本中的行号，并将其添加到对应的 HTML 元素上。
+ * 当检测到ID冲突时，先出现的元素ID会添加"-p"后缀，后出现的元素保持正常ID，防止相同ID干扰定位。
  */
 
 import MarkdownIt = require('markdown-it');
@@ -15,6 +16,9 @@ import MarkdownIt = require('markdown-it');
 export function lineNumberPlugin(md: MarkdownIt): void {
   // 保存原始的 renderer 规则
   const originalRules = { ...md.renderer.rules };
+
+  // 用于跟踪已使用的ID和对应的token，处理ID冲突
+  const idToTokenMap = new Map<string, any>();
 
   // 遍历所有规则类型
   Object.keys(originalRules).forEach(type => {
@@ -45,7 +49,26 @@ export function lineNumberPlugin(md: MarkdownIt): void {
 
           // 如果没有 id 属性，添加一个
           if (!hasId) {
-            token.attrs.push(['id', lineNumber.toString()]);
+            // 获取行号作为ID
+            const idValue = lineNumber.toString();
+
+            // 检查ID是否已被使用
+            if (idToTokenMap.has(idValue)) {
+              // 如果ID已被使用，为先前的元素添加"-p"后缀
+              const previousToken = idToTokenMap.get(idValue);
+
+              // 查找先前token的id属性并修改
+              for (let i = 0; i < previousToken.attrs.length; i++) {
+                if (previousToken.attrs[i][0] === 'id' && previousToken.attrs[i][1] === idValue) {
+                  previousToken.attrs[i][1] = `${idValue}-p`;
+                  break;
+                }
+              }
+            }
+
+            // 添加ID并记录当前token
+            token.attrs.push(['id', idValue]);
+            idToTokenMap.set(idValue, token);
           }
         }
 
@@ -57,6 +80,9 @@ export function lineNumberPlugin(md: MarkdownIt): void {
 
   // 添加一个后处理器，确保所有块级元素都有行号
   md.core.ruler.push('add_line_numbers', (state: any) => {
+    // 每次处理新文档时重置ID映射
+    idToTokenMap.clear();
+
     const tokens = state.tokens;
 
     for (let i = 0; i < tokens.length; i++) {
@@ -82,7 +108,26 @@ export function lineNumberPlugin(md: MarkdownIt): void {
 
         // 如果没有 id 属性，添加一个
         if (!hasId) {
-          token.attrs.push(['id', lineNumber.toString()]);
+          // 获取行号作为ID
+          const idValue = lineNumber.toString();
+
+          // 检查ID是否已被使用
+          if (idToTokenMap.has(idValue)) {
+            // 如果ID已被使用，为先前的元素添加"-p"后缀
+            const previousToken = idToTokenMap.get(idValue);
+
+            // 查找先前token的id属性并修改
+            for (let i = 0; i < previousToken.attrs.length; i++) {
+              if (previousToken.attrs[i][0] === 'id' && previousToken.attrs[i][1] === idValue) {
+                previousToken.attrs[i][1] = `${idValue}-p`;
+                break;
+              }
+            }
+          }
+
+          // 添加ID并记录当前token
+          token.attrs.push(['id', idValue]);
+          idToTokenMap.set(idValue, token);
         }
       }
     }

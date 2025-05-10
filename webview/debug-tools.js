@@ -53,8 +53,17 @@ function initDebugTools(options) {
   // 从选项中获取启用状态
   debugConfig.enabled = options.enabled;
 
-  // 如果调试工具未启用，不执行任何操作
+  // 如果调试工具未启用，移除现有的调试工具并返回
   if (!debugConfig.enabled) {
+    console.log('调试工具已禁用，不初始化调试工具');
+
+    // 移除现有的调试工具
+    const existingDebugTools = document.getElementById('debug-tools');
+    if (existingDebugTools) {
+      existingDebugTools.remove();
+      console.log('已移除现有的调试工具');
+    }
+
     return;
   }
 
@@ -170,7 +179,7 @@ function addDebugTools(options) {
   jumpButton.addEventListener('click', () => {
     const lineNumber = parseInt(lineInput.value, 10);
     if (!isNaN(lineNumber) && lineNumber > 0) {
-      scrollToLine(lineNumber, true);
+      scrollToLine(lineNumber);
     }
   });
 
@@ -179,7 +188,7 @@ function addDebugTools(options) {
     if (e.key === 'Enter') {
       const lineNumber = parseInt(lineInput.value, 10);
       if (!isNaN(lineNumber) && lineNumber > 0) {
-        scrollToLine(lineNumber, true);
+        scrollToLine(lineNumber);
       }
     }
   });
@@ -346,11 +355,37 @@ function highlightElement(element, duration = 1000) {
 }
 
 /**
- * 此函数已不再使用，调试工具的显示/隐藏通过主脚本中的 debugToolsConfig.enabled 来控制
- * 保留此函数是为了兼容性，避免可能的引用错误
+ * 切换调试工具的显示/隐藏状态
+ *
+ * 此函数现在会通知主脚本切换调试工具的状态
+ *
+ * @param {boolean} [forceState] - 可选，强制设置为指定状态（true=显示，false=隐藏）
+ * @returns {boolean} 切换后的状态
  */
-function toggleDebugTools() {
-  console.log('调试工具的显示/隐藏现在通过主脚本中的 debugToolsConfig.enabled 来控制');
+function toggleDebugTools(forceState) {
+  // 如果提供了强制状态，使用它；否则切换当前状态
+  if (typeof forceState === 'boolean') {
+    debugConfig.enabled = forceState;
+  } else {
+    debugConfig.enabled = !debugConfig.enabled;
+  }
+
+  console.log(`调试工具已${debugConfig.enabled ? '启用' : '禁用'}`);
+
+  // 触发事件通知主脚本
+  const event = new CustomEvent('debugToolsToggled', {
+    detail: { enabled: debugConfig.enabled }
+  });
+  window.dispatchEvent(event);
+
+  // 如果禁用，移除调试工具
+  if (!debugConfig.enabled) {
+    const debugToolsElement = document.getElementById('debug-tools');
+    if (debugToolsElement) {
+      debugToolsElement.remove();
+    }
+  }
+
   return debugConfig.enabled;
 }
 

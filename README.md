@@ -45,12 +45,20 @@ Markdown LiveSync 是一个为 VS Code 和 Cursor 编辑器设计的 Markdown �
 - 使用目录顶部的快捷操作可展开/折叠不同级别的目录项
 - 点击目录项旁的箭头可展开/折叠子目录
 
+### 调试工具
+
+预览页面中提供了调试工具，帮助开发者调试和测试：
+
+- 使用快捷键 `Ctrl+Shift+E` (Windows/Linux) 或 `Cmd+Shift+E` (Mac) 可以快速切换调试工具的显示状态
+- 调试工具提供行号标记、跳转功能和当前光标位置显示
+
 ## 配置选项
 
 在VS Code设置中，可以配置以下选项：
 
 - `markdown-livesync.browser`: 指定用于打开预览的浏览器路径，留空使用默认浏览器
 - `markdown-livesync.showToc`: 是否默认显示目录导航（默认：是）
+- `markdown-livesync.highlightOnScroll`: 滚动到指定位置时是否高亮显示目标元素（默认：否）
 - `markdown-livesync.debug`: 启用调试日志（默认：否）
 
 ## 开发功能

@@ -219,9 +219,10 @@ export class MarkdownServer {
         return res.status(400).send('缺少文档URI参数');
       }
 
-      // 获取是否显示目录的配置
+      // 获取配置
       const config = vscode.workspace.getConfiguration('markdown-livesync');
       const defaultShowToc = config.get<boolean>('showToc', true);
+      const highlightOnScroll = config.get<boolean>('highlightOnScroll', false);
 
       // 使用查询参数或默认配置
       const shouldShowToc = showToc !== undefined ? showToc === 'true' : defaultShowToc;
@@ -241,6 +242,7 @@ export class MarkdownServer {
             window.accessToken = "${this.token}";
             window.initialLine = ${line || 1};
             window.showToc = ${shouldShowToc};
+            window.highlightOnScroll = ${highlightOnScroll};
             window.wsUrl = "ws://localhost:${this.port}/ws?documentUri=${encodeURIComponent(documentUri)}&token=${encodeURIComponent(this.token)}";
           </script>
         </head>

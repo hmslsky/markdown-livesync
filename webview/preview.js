@@ -5,6 +5,7 @@ const documentUri = window.documentUri;
 const accessToken = window.accessToken;
 const initialLine = window.initialLine || 1;
 const showToc = window.showToc;
+const highlightOnScroll = window.highlightOnScroll || false; // 滚动高亮配置
 const wsUrl = window.wsUrl;
 
 // DOM元素 - 使用函数延迟初始化，确保在 DOMContentLoaded 后获取
@@ -97,14 +98,17 @@ document.addEventListener('DOMContentLoaded', () => {
   // 加载调试工具配置
   debugToolsConfig.load();
 
-  // 设置调试工具为启用状态（可以根据需要修改）
-  debugToolsConfig.enabled = true;  // 设置为 true 显示调试工具，false 隐藏调试工具
+  // 注意：调试工具的启用状态现在由 debugToolsConfig.load() 从本地存储加载
+  // 如果需要手动设置，可以取消下面的注释并修改值
+  // debugToolsConfig.enabled = false;  // 设置为 true 显示调试工具，false 隐藏调试工具
   debugToolsConfig.save();
 
   // 加载调试工具脚本
   if (debugToolsConfig.enabled) {
     loadDebugTools();
     console.log('调试工具已启用，正在加载...');
+  } else {
+    console.log('调试工具已禁用，不加载调试工具脚本');
   }
 
   // 加载Markdown内容
@@ -152,8 +156,8 @@ async function loadMarkdownContent() {
       document.title = `${data.title} - Markdown预览`;
     }
 
-    // 滚动到初始行，并高亮显示
-    scrollToLine(initialLine, false);
+    // 滚动到初始行
+    scrollToLine(initialLine);
 
   } catch (error) {
     console.error('加载Markdown内容失败:', error);
@@ -685,9 +689,9 @@ function addIdsToHeadings() {
  * 为元素添加高亮效果，使其更容易被用户注意到
  *
  * @param {HTMLElement} element - 要高亮的元素
- * @param {number} duration - 高亮持续时间（毫秒），默认3000ms
+ * @param {number} duration - 高亮持续时间（毫秒），默认1500ms
  */
-function highlightElement(element, duration = 3000) {
+function highlightElement(element, duration = 1500) {
   // 先移除可能存在的高亮类，确保动画可以重新触发
   element.classList.remove('highlight-line');
 
@@ -867,11 +871,11 @@ function toggleToc() {
  *
  * 这个函数负责将预览内容滚动到与编辑器中指定行号对应的位置。
  * 简化后只使用ID属性进行定位，如果找不到精确匹配，则找最近的ID。
+ * 是否高亮显示由全局配置 highlightOnScroll 决定。
  *
  * @param {number} lineNumber - 编辑器中的行号
- * @param {boolean} highlight - 是否高亮显示目标元素，默认为false
  */
-function scrollToLine(lineNumber, highlight = false) {
+function scrollToLine(lineNumber) {
   console.log(`尝试滚动到行: ${lineNumber}`);
 
   // 显示当前行号指示器，让用户知道当前光标位置
@@ -891,10 +895,8 @@ function scrollToLine(lineNumber, highlight = false) {
   if (lineIdElement) {
     console.log(`成功: 找到ID为${lineNumber}的元素`);
 
-    // 添加临时高亮效果，帮助用户识别当前光标位置
-    const tempHighlight = highlight || true; // 默认添加高亮效果
-
-    scrollToElement(lineIdElement, tempHighlight);
+    // 使用全局配置决定是否高亮
+    scrollToElement(lineIdElement, highlightOnScroll);
 
     // 更新调试工具中的当前行显示（如果存在）
     if (window.updateCurrentLineDisplay) {
@@ -938,10 +940,8 @@ function scrollToLine(lineNumber, highlight = false) {
     const closestId = parseInt(closestElement.id, 10);
     console.log(`成功: 找到最接近行号${lineNumber}的元素，ID为${closestId}`);
 
-    // 添加临时高亮效果，帮助用户识别当前光标位置
-    const tempHighlight = highlight || true; // 默认添加高亮效果
-
-    scrollToElement(closestElement, tempHighlight);
+    // 使用全局配置决定是否高亮
+    scrollToElement(closestElement, highlightOnScroll);
 
     // 更新调试工具中的当前行显示（如果存在）
     if (window.updateCurrentLineDisplay) {
@@ -1203,7 +1203,7 @@ function connectWebSocket() {
           // 如果有光标位置，优先滚动到光标位置
           if (currentCursorLine) {
             console.log(`文档更新后恢复光标位置: 行 ${currentCursorLine}`);
-            scrollToLine(currentCursorLine, false);
+            scrollToLine(currentCursorLine);
           } else {
             // 否则保持原来的滚动位置
             console.log(`文档更新后恢复滚动位置: ${scrollPosition}px`);
@@ -1223,13 +1223,13 @@ function connectWebSocket() {
           // 检查DOM是否已经准备好
           if (contentElement.querySelectorAll('[id]').length > 0) {
             console.log(`准备滚动到行 ${message.lineNumber}，DOM已准备好`);
-            scrollToLine(message.lineNumber, false);
+            scrollToLine(message.lineNumber);
           } else {
             console.warn('DOM元素尚未准备好，无法滚动到指定行，将在300ms后重试');
             // 再次尝试，使用更长的延迟
             setTimeout(() => {
               console.log(`重试滚动到行 ${message.lineNumber}`);
-              scrollToLine(message.lineNumber, false);
+              scrollToLine(message.lineNumber);
             }, 300);
           }
         }, 100);
@@ -1288,7 +1288,7 @@ function startHeartbeat() {
   // 每30秒发送一次ping
   heartbeatTimer = setInterval(() => {
     sendPing();
-  }, 30000);
+  }, 60000);
 }
 
 /**
@@ -1335,6 +1335,16 @@ function setupEventListeners() {
     console.warn('未找到 toggle-toc 按钮');
   }
 
+  // 添加键盘快捷键监听器 - Ctrl+Shift+D 切换调试工具
+  document.addEventListener('keydown', (event) => {
+    // 检查是否按下 Ctrl+Shift+D (Windows/Linux) 或 Cmd+Shift+D (Mac)
+    if ((event.ctrlKey || event.metaKey) && event.shiftKey && event.key === 'e') {
+      console.log('检测到快捷键 Ctrl+Shift+D，切换调试工具显示状态');
+      event.preventDefault(); // 阻止默认行为
+      toggleDebugTools(); // 切换调试工具显示状态
+    }
+  });
+
   // 监听窗口大小变化，调整布局
   window.addEventListener('resize', () => {
     try {
@@ -1362,6 +1372,31 @@ function setupEventListeners() {
     }
   });
 
+  // 监听调试工具切换事件
+  window.addEventListener('debugToolsToggled', (e) => {
+    try {
+      const enabled = e.detail.enabled;
+      console.log(`主脚本接收到调试工具切换事件: ${enabled ? '启用' : '禁用'}`);
+
+      // 更新配置
+      debugToolsConfig.enabled = enabled;
+      debugToolsConfig.save();
+
+      // 根据新状态加载或卸载调试工具
+      if (enabled) {
+        loadDebugTools();
+      } else {
+        // 移除现有的调试工具
+        const existingDebugTools = document.getElementById('debug-tools');
+        if (existingDebugTools) {
+          existingDebugTools.remove();
+        }
+      }
+    } catch (error) {
+      console.error('处理调试工具切换事件时出错:', error);
+    }
+  });
+
   // 初始调整布局
   try {
     console.log('初始调整布局');
@@ -1377,6 +1412,20 @@ function setupEventListeners() {
 function loadDebugTools() {
   console.log('开始加载调试工具...');
   console.log('调试工具状态:', debugToolsConfig.enabled ? '启用' : '禁用');
+
+  // 如果调试工具被禁用，不加载脚本
+  if (!debugToolsConfig.enabled) {
+    console.log('调试工具已禁用，不加载调试工具脚本');
+
+    // 如果已经存在调试工具，移除它们
+    const existingDebugTools = document.getElementById('debug-tools');
+    if (existingDebugTools) {
+      existingDebugTools.remove();
+      console.log('已移除现有的调试工具');
+    }
+
+    return;
+  }
 
   // 检查是否已经加载
   if (window.debugTools) {
@@ -1416,6 +1465,20 @@ function loadDebugTools() {
  * 初始化调试工具
  */
 function initializeDebugTools() {
+  // 如果调试工具被禁用，不初始化
+  if (!debugToolsConfig.enabled) {
+    console.log('调试工具已禁用，不初始化调试工具');
+
+    // 如果已经存在调试工具，移除它们
+    const existingDebugTools = document.getElementById('debug-tools');
+    if (existingDebugTools) {
+      existingDebugTools.remove();
+      console.log('已移除现有的调试工具');
+    }
+
+    return;
+  }
+
   if (window.debugTools && window.debugTools.initDebugTools) {
     window.debugTools.initDebugTools({
       contentElement: contentElement,
@@ -1428,12 +1491,37 @@ function initializeDebugTools() {
 }
 
 /**
- * 此函数已不再使用，调试工具的显示/隐藏通过修改 debugToolsConfig.enabled 来控制
- * 保留此函数是为了兼容性，避免可能的引用错误
+ * 切换调试工具的显示/隐藏状态
+ *
+ * @param {boolean} [forceState] - 可选，强制设置为指定状态（true=显示，false=隐藏）
+ * @returns {boolean} 切换后的状态
  */
-function toggleDebugTools() {
-  console.log('调试工具的显示/隐藏现在通过修改 debugToolsConfig.enabled 来控制');
-  console.log('请在代码中设置 debugToolsConfig.enabled = true/false 来显示/隐藏调试工具');
+function toggleDebugTools(forceState) {
+  // 如果提供了强制状态，使用它；否则切换当前状态
+  if (typeof forceState === 'boolean') {
+    debugToolsConfig.enabled = forceState;
+  } else {
+    debugToolsConfig.enabled = !debugToolsConfig.enabled;
+  }
+
+  // 保存配置
+  debugToolsConfig.save();
+
+  console.log(`调试工具已${debugToolsConfig.enabled ? '启用' : '禁用'}`);
+
+  // 根据新状态加载或卸载调试工具
+  if (debugToolsConfig.enabled) {
+    loadDebugTools();
+  } else {
+    // 移除现有的调试工具
+    const existingDebugTools = document.getElementById('debug-tools');
+    if (existingDebugTools) {
+      existingDebugTools.remove();
+      console.log('已移除调试工具');
+    }
+  }
+
+  return debugToolsConfig.enabled;
 }
 
 /**
