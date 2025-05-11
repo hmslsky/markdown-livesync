@@ -1,5 +1,7 @@
 # 源代码文件
 .vscode/**
+.vscode-test/**
+_design/**
 src/**
 out/**/*.map
 tsconfig.json
@@ -15,7 +17,6 @@ tsconfig.json
 !images/**
 
 # 开发和测试文件
-_design/**
 .editorconfig
 .eslintignore
 .prettierrc
@@ -45,7 +46,12 @@ samples/**
 !LICENSE
 
 # 构建和依赖文件
-node_modules/**
+# TODO 需要优化，node_modules 太大了，但目前测试需要全部打包才能使用
+# node_modules/**
+# !node_modules/express
+# !node_modules/markdown-it
+# !node_modules/open
+# !node_modules/ws
 .yarnrc
 .npmrc
 .npmignore

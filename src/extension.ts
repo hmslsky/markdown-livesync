@@ -6,13 +6,15 @@ import { MarkdownServer } from './server/markdownServer';
 let server: MarkdownServer | undefined;
 
 export function activate(context: vscode.ExtensionContext) {
-  console.log('Markdown LiveSync 插件已激活');
+  console.log('Markdown LiveSync 插件已激活（activate 函数已调用）');
 
   // 初始化服务器
   server = new MarkdownServer(context);
+  console.log('Markdown LiveSync 服务器已初始化');
 
   // 注册命令
   registerCommands(context, server);
+  console.log('Markdown LiveSync 命令已注册');
 
   // 注册事件处理
   context.subscriptions.push(

@@ -52,6 +52,9 @@ export class MarkdownProcessor {
     // 获取基本HTML，行号插件会在解析过程中直接添加行号信息
     let html = this.md.render(markdown);
 
+    // 过滤SVG标签中的危险属性和内容
+    html = this.sanitizeSvg(html);
+
     // 将markdown分割成行，用于添加行号指示器
     const markdownLines = markdown.split('\n');
     const totalLines = markdownLines.length;
@@ -78,9 +81,92 @@ export class MarkdownProcessor {
     return result;
   }
 
-
-
-
+  /**
+   * 过滤SVG中的危险内容
+   * 
+   * 此方法会移除SVG标签中可能包含的所有事件处理属性(如on*)，
+   * 移除script标签，以及移除可能导致安全问题的其他属性。
+   * 
+   * @param html 原始HTML内容
+   * @returns 过滤后的安全HTML
+   */
+  private sanitizeSvg(html: string): string {
+    // 1. 处理SVG标签中的危险属性
+    let sanitized = html.replace(
+      /<svg\s+([^>]*)(\/?)>/gi,
+      (_match, attributes, selfClosing) => {
+        // 移除所有on*事件处理属性
+        const safeAttributes = attributes.replace(
+          /\s+on\w+\s*=\s*(['"])[^'"]*\1/gi,
+          ''
+        );
+        
+        // 移除src属性(可能导致远程资源加载)
+        const withoutSrc = safeAttributes.replace(
+          /\s+src\s*=\s*(['"])[^'"]*\1/gi,
+          ''
+        );
+        
+        // 移除其他可能有安全风险的属性
+        const withoutFetch = withoutSrc.replace(
+          /\s+fetch\s*=\s*(['"])[^'"]*\1/gi,
+          ''
+        );
+        
+        // 移除autofocus属性(可能与onfocus事件配合使用)
+        const withoutAutofocus = withoutFetch.replace(
+          /\s+autofocus\s*=\s*(['"])?[^'"]*\1?/gi,
+          ''
+        );
+        
+        // 移除href属性(可能导向危险URL)
+        const withoutHref = withoutAutofocus.replace(
+          /\s+href\s*=\s*(['"])[^'"]*\1/gi,
+          ''
+        );
+        
+        // 移除formaction属性
+        const withoutFormaction = withoutHref.replace(
+          /\s+formaction\s*=\s*(['"])[^'"]*\1/gi,
+          ''
+        );
+        
+        // 移除xlink:href属性
+        const withoutXlinkHref = withoutFormaction.replace(
+          /\s+xlink:href\s*=\s*(['"])[^'"]*\1/gi,
+          ''
+        );
+        
+        return `<svg ${withoutXlinkHref}${selfClosing}>`;
+      }
+    );
+    
+    // 2. 移除SVG中的script标签及其内容
+    sanitized = sanitized.replace(
+      /<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi,
+      ''
+    );
+    
+    // 3. 移除SVG中的iframe标签
+    sanitized = sanitized.replace(
+      /<iframe\b[^<]*(?:(?!<\/iframe>)<[^<]*)*<\/iframe>/gi,
+      ''
+    );
+    
+    // 4. 移除SVG中的use标签(可用于引用外部资源)
+    sanitized = sanitized.replace(
+      /<use\b[^<]*(?:(?!<\/use>)<[^<]*)*<\/use>/gi,
+      ''
+    );
+    
+    // 5. 移除SVG中的foreignObject标签(可以包含HTML)
+    sanitized = sanitized.replace(
+      /<foreignObject\b[^<]*(?:(?!<\/foreignObject>)<[^<]*)*<\/foreignObject>/gi,
+      ''
+    );
+    
+    return sanitized;
+  }
 
   /**
    * 生成目录结构
@@ -206,8 +292,6 @@ export class MarkdownProcessor {
     return commentStartFound;
   }
 
-
-
   /**
    * 处理文档中的图片路径，转换为绝对路径
    */
@@ -217,10 +301,10 @@ export class MarkdownProcessor {
     // 使用正则表达式替换相对图片路径
     return html.replace(
       /<img\s+src="([^"]+)"/g,
-      (match, imgPath) => {
+      (_match, imgPath) => {
         if (imgPath.startsWith('http://') || imgPath.startsWith('https://') || imgPath.startsWith('data:')) {
           // 已经是绝对路径或数据URI，不需要处理
-          return match;
+          return _match;
         }
 
         // 转换为绝对路径

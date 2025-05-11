@@ -2,7 +2,7 @@
   "name": "markdown-livesync",
   "displayName": "Markdown LiveSync",
   "description": "实时同步Markdown编辑与浏览器预览，支持目录导航和光标同步",
-  "version": "0.1.49",
+  "version": "0.1.55",
   "publisher": "hmslsky",
   "author": "hmslsky",
   "icon": "images/icon.png",
