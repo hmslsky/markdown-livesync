@@ -1,8 +1,8 @@
 {
   "name": "markdown-livesync",
   "displayName": "Markdown LiveSync",
-  "description": "实时同步Markdown编辑与浏览器预览，支持目录导航和光标同步",
-  "version": "0.1.55",
+  "description": "实时同步Markdown编辑与浏览器预览，支持目录导航、光标同步和Mermaid图表渲染",
+  "version": "0.1.62",
   "publisher": "hmslsky",
   "author": "hmslsky",
   "icon": "images/icon.png",
@@ -98,6 +98,7 @@
   "dependencies": {
     "express": "^4.17.1",
     "markdown-it": "^12.3.2",
+    "mermaid": "^10.9.3",
     "open": "^8.4.0",
     "ws": "^8.13.0"
   }

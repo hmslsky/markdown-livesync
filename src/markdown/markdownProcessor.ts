@@ -2,6 +2,7 @@ import * as MarkdownIt from 'markdown-it';
 import * as path from 'path';
 import * as vscode from 'vscode';
 import { lineNumberPlugin } from './lineNumberPlugin';
+import { mermaidPlugin } from './mermaidPlugin';
 
 // 定义目录项接口
 export interface TocItem {
@@ -38,6 +39,9 @@ export class MarkdownProcessor {
   private configurePlugins(): void {
     // 添加行号插件，在解析过程中直接添加行号信息
     lineNumberPlugin(this.md);
+
+    // 添加Mermaid插件，用于渲染Mermaid图表
+    mermaidPlugin(this.md);
 
     // 这里可以添加更多插件，如表格、任务列表等
   }
@@ -83,10 +87,10 @@ export class MarkdownProcessor {
 
   /**
    * 过滤SVG中的危险内容
-   * 
+   *
    * 此方法会移除SVG标签中可能包含的所有事件处理属性(如on*)，
    * 移除script标签，以及移除可能导致安全问题的其他属性。
-   * 
+   *
    * @param html 原始HTML内容
    * @returns 过滤后的安全HTML
    */
@@ -100,71 +104,71 @@ export class MarkdownProcessor {
           /\s+on\w+\s*=\s*(['"])[^'"]*\1/gi,
           ''
         );
-        
+
         // 移除src属性(可能导致远程资源加载)
         const withoutSrc = safeAttributes.replace(
           /\s+src\s*=\s*(['"])[^'"]*\1/gi,
           ''
         );
-        
+
         // 移除其他可能有安全风险的属性
         const withoutFetch = withoutSrc.replace(
           /\s+fetch\s*=\s*(['"])[^'"]*\1/gi,
           ''
         );
-        
+
         // 移除autofocus属性(可能与onfocus事件配合使用)
         const withoutAutofocus = withoutFetch.replace(
           /\s+autofocus\s*=\s*(['"])?[^'"]*\1?/gi,
           ''
         );
-        
+
         // 移除href属性(可能导向危险URL)
         const withoutHref = withoutAutofocus.replace(
           /\s+href\s*=\s*(['"])[^'"]*\1/gi,
           ''
         );
-        
+
         // 移除formaction属性
         const withoutFormaction = withoutHref.replace(
           /\s+formaction\s*=\s*(['"])[^'"]*\1/gi,
           ''
         );
-        
+
         // 移除xlink:href属性
         const withoutXlinkHref = withoutFormaction.replace(
           /\s+xlink:href\s*=\s*(['"])[^'"]*\1/gi,
           ''
         );
-        
+
         return `<svg ${withoutXlinkHref}${selfClosing}>`;
       }
     );
-    
+
     // 2. 移除SVG中的script标签及其内容
     sanitized = sanitized.replace(
       /<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi,
       ''
     );
-    
+
     // 3. 移除SVG中的iframe标签
     sanitized = sanitized.replace(
       /<iframe\b[^<]*(?:(?!<\/iframe>)<[^<]*)*<\/iframe>/gi,
       ''
     );
-    
+
     // 4. 移除SVG中的use标签(可用于引用外部资源)
     sanitized = sanitized.replace(
       /<use\b[^<]*(?:(?!<\/use>)<[^<]*)*<\/use>/gi,
       ''
     );
-    
+
     // 5. 移除SVG中的foreignObject标签(可以包含HTML)
     sanitized = sanitized.replace(
       /<foreignObject\b[^<]*(?:(?!<\/foreignObject>)<[^<]*)*<\/foreignObject>/gi,
       ''
     );
-    
+
     return sanitized;
   }
 

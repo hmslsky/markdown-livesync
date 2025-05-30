@@ -34,6 +34,63 @@ function initDOMElements() {
   }
 }
 
+/**
+ * 初始化Mermaid
+ */
+function initMermaid() {
+  if (typeof mermaid !== 'undefined') {
+    console.log('初始化Mermaid...');
+
+    try {
+      // 配置Mermaid - 使用更简单的配置避免兼容性问题
+      mermaid.initialize({
+        startOnLoad: false, // 不自动启动，我们手动控制
+        theme: 'default',
+        securityLevel: 'loose', // 允许更多的HTML内容
+        fontFamily: 'inherit',
+        fontSize: 14,
+        // 简化配置，避免版本兼容性问题
+        flowchart: {
+          htmlLabels: true,
+          curve: 'basis'
+        },
+        sequence: {
+          wrap: true,
+          boxMargin: 8,
+          messageMargin: 30
+        },
+        gantt: {
+          fontSize: 12,
+          sectionFontSize: 14
+        }
+      });
+
+      console.log('Mermaid初始化完成');
+
+      // 测试Mermaid是否正常工作
+      if (typeof mermaid.render === 'function') {
+        console.log('Mermaid render函数可用');
+
+        // 进行简单的功能测试
+        try {
+          console.log('Mermaid版本:', mermaid.version || '未知');
+          console.log('可用的Mermaid方法:', Object.keys(mermaid));
+        } catch (e) {
+          console.warn('无法获取Mermaid详细信息:', e);
+        }
+      } else {
+        console.warn('Mermaid render函数不可用');
+        console.log('可用的Mermaid属性:', typeof mermaid === 'object' ? Object.keys(mermaid) : 'mermaid不是对象');
+      }
+
+    } catch (error) {
+      console.error('Mermaid初始化失败:', error);
+    }
+  } else {
+    console.warn('Mermaid库未加载');
+  }
+}
+
 // WebSocket连接
 let ws = null;
 
@@ -95,6 +152,9 @@ document.addEventListener('DOMContentLoaded', () => {
   // 初始化 DOM 元素引用
   initDOMElements();
 
+  // 初始化Mermaid
+  initMermaid();
+
   // 加载调试工具配置
   debugToolsConfig.load();
 
@@ -147,6 +207,9 @@ async function loadMarkdownContent() {
 
     // 为所有标题元素添加ID
     addIdsToHeadings();
+
+    // 渲染Mermaid图表
+    renderMermaidDiagrams();
 
     // 更新目录
     renderToc(data.toc);
@@ -1195,6 +1258,9 @@ function connectWebSocket() {
         // 为所有标题元素添加ID
         addIdsToHeadings();
 
+        // 渲染Mermaid图表
+        renderMermaidDiagrams();
+
         // 更新目录
         renderToc(message.toc);
 
@@ -1552,15 +1618,404 @@ function adjustLayout() {
     // 调整内容区域的最大宽度
     if (isTocVisible) {
       // 目录可见时，内容区域宽度减小
-      container.style.maxWidth = `${windowWidth - 300}px`;
+      container.style.maxWidth = `${windowWidth - 20}px`;
     } else {
       // 目录隐藏时，内容区域可以更宽
-      container.style.maxWidth = `${windowWidth - 100}px`;
+      container.style.maxWidth = `${windowWidth - 10}px`;
     }
 
     console.log(`布局已调整: 窗口宽度=${windowWidth}px, 目录${isTocVisible ? '可见' : '隐藏'}`);
   } catch (error) {
     console.error('调整布局时出错:', error);
+  }
+}
+
+/**
+ * 渲染Mermaid图表
+ */
+function renderMermaidDiagrams() {
+  if (typeof mermaid === 'undefined') {
+    console.warn('Mermaid库未加载，无法渲染图表');
+    return;
+  }
+
+  console.log('开始渲染Mermaid图表...');
+
+  // 查找所有Mermaid容器
+  const mermaidElements = document.querySelectorAll('.mermaid');
+
+  if (mermaidElements.length === 0) {
+    console.log('未找到Mermaid图表');
+    return;
+  }
+
+  console.log(`找到 ${mermaidElements.length} 个Mermaid图表`);
+
+  // 渲染每个Mermaid图表
+  mermaidElements.forEach((element, index) => {
+    try {
+      // 获取Mermaid代码和元数据
+      const mermaidCode = decodeURIComponent(element.getAttribute('data-mermaid') || '');
+      const chartType = element.getAttribute('data-chart-type') || 'unknown';
+      const complexity = element.getAttribute('data-complexity') || 'medium';
+
+      if (!mermaidCode) {
+        console.warn(`Mermaid图表 ${index + 1} 没有代码内容`);
+        return;
+      }
+
+      console.log(`渲染Mermaid图表 ${index + 1} (${chartType}, ${complexity}):`, mermaidCode.substring(0, 50) + '...');
+
+      // 清空元素内容
+      element.innerHTML = '';
+
+      // 生成唯一ID（如果没有的话）
+      if (!element.id) {
+        element.id = `mermaid-${Date.now()}-${index}`;
+      }
+
+      // 确保DOM元素已准备好
+      if (!document.body.contains(element)) {
+        console.warn(`Mermaid图表 ${index + 1} 的DOM元素不在文档中`);
+        return;
+      }
+
+      // 使用更简单和兼容的渲染方式
+      try {
+        // 先验证Mermaid代码语法
+        if (!mermaidCode.trim()) {
+          throw new Error('Mermaid代码为空');
+        }
+
+        console.log(`开始渲染Mermaid图表 ${index + 1}，代码:`, mermaidCode.substring(0, 100) + '...');
+
+        // 使用最兼容的渲染方式
+        // 先尝试使用mermaid.render
+        if (typeof mermaid.render === 'function') {
+          // 创建一个临时容器来测试渲染
+          const tempDiv = document.createElement('div');
+          tempDiv.style.visibility = 'hidden';
+          tempDiv.style.position = 'absolute';
+          document.body.appendChild(tempDiv);
+
+          try {
+            // 使用mermaid.render API
+            mermaid.render(element.id + '-svg', mermaidCode).then(({ svg }) => {
+              document.body.removeChild(tempDiv);
+
+              if (svg && element.parentNode) {
+                element.innerHTML = svg;
+
+                // 渲染完成后，调整SVG尺寸和添加交互功能
+                const svgElement = element.querySelector('svg');
+                if (svgElement) {
+                  setupMermaidInteractivity(element, svgElement, chartType, complexity);
+                }
+
+                console.log(`Mermaid图表 ${index + 1} 渲染成功`);
+              }
+            }).catch(error => {
+              document.body.removeChild(tempDiv);
+              handleMermaidRenderError(element, error, mermaidCode, index + 1);
+            });
+          } catch (syncError) {
+            document.body.removeChild(tempDiv);
+            throw syncError;
+          }
+        } else {
+          throw new Error('Mermaid.render函数不可用');
+        }
+
+      } catch (error) {
+        console.error(`Mermaid渲染准备失败:`, error);
+        handleMermaidRenderError(element, error, mermaidCode, index + 1);
+      }
+
+    } catch (error) {
+      console.error(`处理Mermaid图表 ${index + 1} 时出错:`, error);
+      element.innerHTML = `<div class="mermaid-error">
+        <p>处理Mermaid图表时出错:</p>
+        <pre>${error.message}</pre>
+      </div>`;
+    }
+  });
+
+  // 设置全局控制事件监听器
+  setupMermaidGlobalControls();
+}
+
+/**
+ * 处理Mermaid渲染错误
+ */
+function handleMermaidRenderError(element, error, mermaidCode, index) {
+  console.error(`Mermaid图表 ${index} 渲染失败:`, error);
+
+  const errorMessage = error.message || error.toString();
+  const errorHtml = `<div class="mermaid-error">
+    <p>Mermaid图表渲染失败:</p>
+    <pre>${errorMessage}</pre>
+    <details>
+      <summary>原始代码</summary>
+      <pre>${mermaidCode}</pre>
+    </details>
+    <div class="mermaid-error-tips">
+      <p>可能的解决方案:</p>
+      <ul>
+        <li>检查Mermaid语法是否正确</li>
+        <li>确保网络连接正常（CDN加载）</li>
+        <li>刷新页面重试</li>
+      </ul>
+    </div>
+  </div>`;
+
+  if (element && element.parentNode) {
+    element.innerHTML = errorHtml;
+  }
+}
+
+/**
+ * 根据图表类型和复杂度获取动态配置
+ */
+function getDynamicMermaidConfig(chartType, complexity, mermaidCode) {
+  const baseConfig = {};
+
+  // 根据复杂度调整基础参数
+  const complexityMultiplier = {
+    'simple': 0.8,
+    'medium': 1.0,
+    'complex': 1.2
+  }[complexity] || 1.0;
+
+  // 根据图表类型调整特定参数
+  switch (chartType) {
+    case 'flowchart':
+      baseConfig.flowchart = {
+        nodeSpacing: Math.round(40 * complexityMultiplier),
+        rankSpacing: Math.round(40 * complexityMultiplier),
+        padding: Math.round(15 * complexityMultiplier)
+      };
+      break;
+
+    case 'sequence':
+      baseConfig.sequence = {
+        width: Math.round(100 * complexityMultiplier),
+        height: Math.round(40 * complexityMultiplier),
+        boxMargin: Math.round(6 * complexityMultiplier),
+        messageMargin: Math.round(25 * complexityMultiplier)
+      };
+      break;
+
+    case 'gantt':
+      baseConfig.gantt = {
+        fontSize: Math.round(11 * complexityMultiplier),
+        sectionFontSize: Math.round(13 * complexityMultiplier),
+        leftPadding: Math.round(50 * complexityMultiplier)
+      };
+      break;
+
+    default:
+      // 对于其他类型，使用默认配置
+      break;
+  }
+
+  return baseConfig;
+}
+
+/**
+ * 设置Mermaid图表的交互功能
+ */
+function setupMermaidInteractivity(container, svgElement, chartType, complexity) {
+  // 移除SVG的固定尺寸属性
+  svgElement.removeAttribute('width');
+  svgElement.removeAttribute('height');
+
+  // 设置viewBox以保持比例
+  if (!svgElement.getAttribute('viewBox')) {
+    try {
+      const bbox = svgElement.getBBox();
+      svgElement.setAttribute('viewBox', `0 0 ${bbox.width} ${bbox.height}`);
+    } catch (e) {
+      console.warn('无法获取SVG边界框:', e);
+    }
+  }
+
+  // 确保SVG响应式
+  svgElement.style.width = '100%';
+  svgElement.style.height = 'auto';
+  svgElement.style.maxWidth = '100%';
+
+  // 添加缩放和平移数据
+  container.dataset.scale = '1';
+  container.dataset.translateX = '0';
+  container.dataset.translateY = '0';
+
+  // 设置初始变换
+  updateMermaidTransform(container);
+
+  // 添加鼠标滚轮缩放支持
+  const wrapper = container.querySelector('.mermaid-wrapper');
+  if (wrapper) {
+    wrapper.addEventListener('wheel', (e) => {
+      e.preventDefault();
+      handleMermaidZoom(container, e.deltaY > 0 ? -0.1 : 0.1, e);
+    });
+
+    // 添加拖拽支持
+    let isDragging = false;
+    let lastX = 0;
+    let lastY = 0;
+
+    wrapper.addEventListener('mousedown', (e) => {
+      if (parseFloat(container.dataset.scale) > 1) {
+        isDragging = true;
+        lastX = e.clientX;
+        lastY = e.clientY;
+        wrapper.classList.add('dragging');
+        e.preventDefault();
+      }
+    });
+
+    document.addEventListener('mousemove', (e) => {
+      if (isDragging) {
+        const deltaX = e.clientX - lastX;
+        const deltaY = e.clientY - lastY;
+
+        const currentX = parseFloat(container.dataset.translateX);
+        const currentY = parseFloat(container.dataset.translateY);
+
+        container.dataset.translateX = currentX + deltaX;
+        container.dataset.translateY = currentY + deltaY;
+
+        updateMermaidTransform(container);
+
+        lastX = e.clientX;
+        lastY = e.clientY;
+      }
+    });
+
+    document.addEventListener('mouseup', () => {
+      if (isDragging) {
+        isDragging = false;
+        wrapper.classList.remove('dragging');
+      }
+    });
+  }
+}
+
+/**
+ * 设置全局Mermaid控制事件监听器
+ */
+function setupMermaidGlobalControls() {
+  // 移除之前的事件监听器
+  document.removeEventListener('click', handleMermaidControlClick);
+
+  // 添加新的事件监听器
+  document.addEventListener('click', handleMermaidControlClick);
+}
+
+/**
+ * 处理Mermaid控制按钮点击
+ */
+function handleMermaidControlClick(e) {
+  const button = e.target.closest('.mermaid-controls button');
+  if (!button) return;
+
+  const container = button.closest('.mermaid-container');
+  if (!container) return;
+
+  e.preventDefault();
+  e.stopPropagation();
+
+  if (button.classList.contains('mermaid-zoom-in')) {
+    handleMermaidZoom(container, 0.2);
+  } else if (button.classList.contains('mermaid-zoom-out')) {
+    handleMermaidZoom(container, -0.2);
+  } else if (button.classList.contains('mermaid-reset')) {
+    resetMermaidTransform(container);
+  } else if (button.classList.contains('mermaid-fullscreen')) {
+    toggleMermaidFullscreen(container);
+  }
+}
+
+/**
+ * 处理Mermaid缩放
+ */
+function handleMermaidZoom(container, delta, event = null) {
+  const currentScale = parseFloat(container.dataset.scale);
+  const newScale = Math.max(0.5, Math.min(3, currentScale + delta));
+
+  container.dataset.scale = newScale.toString();
+
+  // 如果是鼠标滚轮事件，以鼠标位置为中心缩放
+  if (event) {
+    const rect = container.getBoundingClientRect();
+    const centerX = event.clientX - rect.left - rect.width / 2;
+    const centerY = event.clientY - rect.top - rect.height / 2;
+
+    const currentX = parseFloat(container.dataset.translateX);
+    const currentY = parseFloat(container.dataset.translateY);
+
+    // 调整平移以保持鼠标位置为缩放中心
+    container.dataset.translateX = currentX - centerX * delta;
+    container.dataset.translateY = currentY - centerY * delta;
+  }
+
+  updateMermaidTransform(container);
+}
+
+/**
+ * 重置Mermaid变换
+ */
+function resetMermaidTransform(container) {
+  container.dataset.scale = '1';
+  container.dataset.translateX = '0';
+  container.dataset.translateY = '0';
+  updateMermaidTransform(container);
+}
+
+/**
+ * 更新Mermaid变换
+ */
+function updateMermaidTransform(container) {
+  const scale = parseFloat(container.dataset.scale);
+  const translateX = parseFloat(container.dataset.translateX);
+  const translateY = parseFloat(container.dataset.translateY);
+
+  const mermaidElement = container.querySelector('.mermaid');
+  if (mermaidElement) {
+    mermaidElement.style.transform = `scale(${scale}) translate(${translateX}px, ${translateY}px)`;
+  }
+}
+
+/**
+ * 切换Mermaid全屏模式
+ */
+function toggleMermaidFullscreen(container) {
+  const wrapper = container.querySelector('.mermaid-wrapper');
+  if (!wrapper) return;
+
+  if (wrapper.classList.contains('fullscreen')) {
+    // 退出全屏
+    wrapper.classList.remove('fullscreen');
+    document.body.style.overflow = '';
+
+    // 恢复原始变换
+    resetMermaidTransform(container);
+  } else {
+    // 进入全屏
+    wrapper.classList.add('fullscreen');
+    document.body.style.overflow = 'hidden';
+
+    // 添加ESC键退出全屏
+    const handleEscape = (e) => {
+      if (e.key === 'Escape') {
+        wrapper.classList.remove('fullscreen');
+        document.body.style.overflow = '';
+        resetMermaidTransform(container);
+        document.removeEventListener('keydown', handleEscape);
+      }
+    };
+    document.addEventListener('keydown', handleEscape);
   }
 }
 
