@@ -236,7 +236,7 @@ export class MarkdownServer {
           <meta name="viewport" content="width=device-width, initial-scale=1.0">
           <title>Markdown预览</title>
           <link rel="stylesheet" href="/static/markdown.css">
-          <script src="https://cdn.jsdelivr.net/npm/mermaid@10.6.1/dist/mermaid.min.js"></script>
+          <script src="https://cdn.jsdelivr.net/npm/mermaid@11.6.0/dist/mermaid.min.js"></script>
           <script>
             // 存储文档URI和令牌
             window.documentUri = "${documentUri}";

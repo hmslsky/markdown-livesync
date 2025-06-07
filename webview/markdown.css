@@ -429,6 +429,7 @@ img {
   position: relative;
   cursor: grab;
   transition: all 0.3s ease;
+  transform-origin: center center;
 }
 
 .mermaid-wrapper.dragging {
@@ -442,8 +443,12 @@ img {
   right: 0;
   bottom: 0;
   z-index: 9999;
-  background: rgba(0, 0, 0, 0.9);
+  background: #f8f9fa;
   padding: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transform-origin: center center;
 }
 
 .mermaid {
@@ -456,18 +461,24 @@ img {
 
 /* 根据复杂度调整初始尺寸 */
 .mermaid-container[data-complexity="simple"] .mermaid {
-  width: 70%;
-  max-width: 400px;
+  width: 45%;
+  max-width: 300px;
 }
 
 .mermaid-container[data-complexity="medium"] .mermaid {
-  width: 85%;
-  max-width: 600px;
+  width: 70%;
+  max-width: 500px;
 }
 
 .mermaid-container[data-complexity="complex"] .mermaid {
-  width: 95%;
+  width: 90%;
   max-width: none;
+}
+
+/* 纵向图表的特殊处理 */
+.mermaid-container[data-chart-type="flowchart"][data-direction="vertical"] .mermaid {
+  width: 40%;
+  max-width: 250px;
 }
 
 .mermaid svg {
@@ -598,13 +609,13 @@ img {
 
   /* 在中等屏幕上调整Mermaid图表 */
   .mermaid-container[data-complexity="simple"] .mermaid {
-    width: 80%;
-    max-width: 350px;
+    width: 65%; /* 从80%调整为65%，与主设置(55%)相近但稍大适应中等屏幕 */
+    max-width: 320px; /* 从350px减小到320px */
   }
 
   .mermaid-container[data-complexity="medium"] .mermaid {
-    width: 90%;
-    max-width: 500px;
+    width: 85%; /* 从90%调整为85% */
+    max-width: 480px; /* 从500px减小到480px */
   }
 
   .mermaid-container[data-complexity="complex"] .mermaid {
@@ -649,13 +660,13 @@ img {
 
   /* 在小屏幕上调整Mermaid图表 */
   .mermaid-container[data-complexity="simple"] .mermaid {
-    width: 90%;
-    max-width: 300px;
+    width: 75%; /* 从90%调整为75% */
+    max-width: 280px; /* 从300px减小到280px */
   }
 
   .mermaid-container[data-complexity="medium"] .mermaid {
-    width: 95%;
-    max-width: 400px;
+    width: 90%; /* 从95%调整为90% */
+    max-width: 380px; /* 从400px减小到380px */
   }
 
   .mermaid-container[data-complexity="complex"] .mermaid {

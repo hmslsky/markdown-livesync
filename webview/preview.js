@@ -1779,9 +1779,9 @@ function handleMermaidRenderError(element, error, mermaidCode, index) {
 function getDynamicMermaidConfig(chartType, complexity, mermaidCode) {
   const baseConfig = {};
 
-  // 根据复杂度调整基础参数
+  // 根据复杂度调整基础参数 - 为简单图表使用更小的倍数
   const complexityMultiplier = {
-    'simple': 0.8,
+    'simple': 0.6, // 从0.8减小到0.6，使简单图表更紧凑
     'medium': 1.0,
     'complex': 1.2
   }[complexity] || 1.0;
@@ -1790,26 +1790,27 @@ function getDynamicMermaidConfig(chartType, complexity, mermaidCode) {
   switch (chartType) {
     case 'flowchart':
       baseConfig.flowchart = {
-        nodeSpacing: Math.round(40 * complexityMultiplier),
-        rankSpacing: Math.round(40 * complexityMultiplier),
-        padding: Math.round(15 * complexityMultiplier)
+        nodeSpacing: Math.round(30 * complexityMultiplier), // 从40减小到30
+        rankSpacing: Math.round(30 * complexityMultiplier), // 从40减小到30
+        padding: Math.round(10 * complexityMultiplier),     // 从15减小到10
+        curve: 'basis'
       };
       break;
 
     case 'sequence':
       baseConfig.sequence = {
-        width: Math.round(100 * complexityMultiplier),
-        height: Math.round(40 * complexityMultiplier),
-        boxMargin: Math.round(6 * complexityMultiplier),
-        messageMargin: Math.round(25 * complexityMultiplier)
+        width: Math.round(80 * complexityMultiplier),        // 从100减小到80
+        height: Math.round(30 * complexityMultiplier),       // 从40减小到30
+        boxMargin: Math.round(4 * complexityMultiplier),     // 从6减小到4
+        messageMargin: Math.round(20 * complexityMultiplier) // 从25减小到20
       };
       break;
 
     case 'gantt':
       baseConfig.gantt = {
-        fontSize: Math.round(11 * complexityMultiplier),
-        sectionFontSize: Math.round(13 * complexityMultiplier),
-        leftPadding: Math.round(50 * complexityMultiplier)
+        fontSize: Math.round(10 * complexityMultiplier),     // 从11减小到10
+        sectionFontSize: Math.round(12 * complexityMultiplier), // 从13减小到12
+        leftPadding: Math.round(40 * complexityMultiplier)   // 从50减小到40
       };
       break;
 
@@ -1825,6 +1826,8 @@ function getDynamicMermaidConfig(chartType, complexity, mermaidCode) {
  * 设置Mermaid图表的交互功能
  */
 function setupMermaidInteractivity(container, svgElement, chartType, complexity) {
+  console.log(`设置Mermaid交互功能: ${chartType}, ${complexity}`);
+  
   // 移除SVG的固定尺寸属性
   svgElement.removeAttribute('width');
   svgElement.removeAttribute('height');
@@ -1844,10 +1847,12 @@ function setupMermaidInteractivity(container, svgElement, chartType, complexity)
   svgElement.style.height = 'auto';
   svgElement.style.maxWidth = '100%';
 
-  // 添加缩放和平移数据
-  container.dataset.scale = '1';
-  container.dataset.translateX = '0';
-  container.dataset.translateY = '0';
+  // 添加缩放和平移数据 - 确保这些属性被正确设置
+  if (!container.dataset.scale) container.dataset.scale = '1';
+  if (!container.dataset.translateX) container.dataset.translateX = '0';
+  if (!container.dataset.translateY) container.dataset.translateY = '0';
+  
+  console.log(`初始化数据属性: scale=${container.dataset.scale}, translateX=${container.dataset.translateX}, translateY=${container.dataset.translateY}`);
 
   // 设置初始变换
   updateMermaidTransform(container);
@@ -1855,10 +1860,16 @@ function setupMermaidInteractivity(container, svgElement, chartType, complexity)
   // 添加鼠标滚轮缩放支持
   const wrapper = container.querySelector('.mermaid-wrapper');
   if (wrapper) {
-    wrapper.addEventListener('wheel', (e) => {
+    // 移除之前的事件监听器（如果存在）
+    wrapper.removeEventListener('wheel', wrapper._wheelHandler);
+    
+    // 创建新的事件处理器
+    wrapper._wheelHandler = (e) => {
       e.preventDefault();
+      console.log('鼠标滚轮缩放事件');
       handleMermaidZoom(container, e.deltaY > 0 ? -0.1 : 0.1, e);
-    });
+    };
+    wrapper.addEventListener('wheel', wrapper._wheelHandler);
 
     // 添加拖拽支持
     let isDragging = false;
@@ -1917,23 +1928,41 @@ function setupMermaidGlobalControls() {
  * 处理Mermaid控制按钮点击
  */
 function handleMermaidControlClick(e) {
+  console.log('点击事件触发，目标元素:', e.target);
+  
   const button = e.target.closest('.mermaid-controls button');
-  if (!button) return;
+  if (!button) {
+    console.log('未找到按钮元素');
+    return;
+  }
+
+  console.log('找到按钮:', button.className, button.textContent);
 
   const container = button.closest('.mermaid-container');
-  if (!container) return;
+  if (!container) {
+    console.log('未找到容器元素');
+    return;
+  }
+
+  console.log('找到容器:', container);
 
   e.preventDefault();
   e.stopPropagation();
 
   if (button.classList.contains('mermaid-zoom-in')) {
+    console.log('执行放大操作');
     handleMermaidZoom(container, 0.2);
   } else if (button.classList.contains('mermaid-zoom-out')) {
+    console.log('执行缩小操作');
     handleMermaidZoom(container, -0.2);
   } else if (button.classList.contains('mermaid-reset')) {
+    console.log('执行重置操作');
     resetMermaidTransform(container);
   } else if (button.classList.contains('mermaid-fullscreen')) {
+    console.log('执行全屏切换操作');
     toggleMermaidFullscreen(container);
+  } else {
+    console.log('未识别的按钮类型:', button.className);
   }
 }
 
@@ -1941,8 +1970,18 @@ function handleMermaidControlClick(e) {
  * 处理Mermaid缩放
  */
 function handleMermaidZoom(container, delta, event = null) {
-  const currentScale = parseFloat(container.dataset.scale);
+  console.log(`缩放操作: delta=${delta}, 当前数据属性:`, container.dataset);
+  
+  // 确保数据属性存在且为有效数值
+  const currentScale = parseFloat(container.dataset.scale || '1');
+  const currentX = parseFloat(container.dataset.translateX || '0');
+  const currentY = parseFloat(container.dataset.translateY || '0');
+  
+  console.log(`当前变换状态: scale=${currentScale}, translateX=${currentX}, translateY=${currentY}`);
+  
+  // 限制缩放范围
   const newScale = Math.max(0.5, Math.min(3, currentScale + delta));
+  console.log(`新的缩放值: ${newScale}`);
 
   container.dataset.scale = newScale.toString();
 
@@ -1952,12 +1991,11 @@ function handleMermaidZoom(container, delta, event = null) {
     const centerX = event.clientX - rect.left - rect.width / 2;
     const centerY = event.clientY - rect.top - rect.height / 2;
 
-    const currentX = parseFloat(container.dataset.translateX);
-    const currentY = parseFloat(container.dataset.translateY);
-
     // 调整平移以保持鼠标位置为缩放中心
-    container.dataset.translateX = currentX - centerX * delta;
-    container.dataset.translateY = currentY - centerY * delta;
+    container.dataset.translateX = (currentX - centerX * delta).toString();
+    container.dataset.translateY = (currentY - centerY * delta).toString();
+    
+    console.log(`鼠标中心缩放，新的平移值: translateX=${container.dataset.translateX}, translateY=${container.dataset.translateY}`);
   }
 
   updateMermaidTransform(container);
@@ -1981,10 +2019,23 @@ function updateMermaidTransform(container) {
   const translateX = parseFloat(container.dataset.translateX);
   const translateY = parseFloat(container.dataset.translateY);
 
-  const mermaidElement = container.querySelector('.mermaid');
-  if (mermaidElement) {
-    mermaidElement.style.transform = `scale(${scale}) translate(${translateX}px, ${translateY}px)`;
+  // 应用变换到mermaid-wrapper
+  const wrapperElement = container.querySelector('.mermaid-wrapper');
+  if (wrapperElement) {
+    wrapperElement.style.transform = `scale(${scale}) translate(${translateX}px, ${translateY}px)`;
+    wrapperElement.style.transformOrigin = 'center center';
+    
+    // 确保缩放时不会超出容器边界
+    if (scale > 1) {
+      wrapperElement.style.overflow = 'visible';
+      container.style.overflow = 'visible';
+    } else {
+      wrapperElement.style.overflow = 'auto';
+      container.style.overflow = 'hidden';
+    }
   }
+  
+  console.log(`更新Mermaid变换: scale=${scale}, translateX=${translateX}, translateY=${translateY}`);
 }
 
 /**
@@ -2005,6 +2056,25 @@ function toggleMermaidFullscreen(container) {
     // 进入全屏
     wrapper.classList.add('fullscreen');
     document.body.style.overflow = 'hidden';
+
+    // 计算全屏模式下的最佳缩放比例
+    const svg = wrapper.querySelector('svg');
+    if (svg) {
+      const svgRect = svg.getBoundingClientRect();
+      const windowWidth = window.innerWidth;
+      const windowHeight = window.innerHeight;
+      
+      // 计算保持宽高比的最佳缩放比例
+      const scaleX = (windowWidth * 0.8) / svgRect.width;
+      const scaleY = (windowHeight * 0.8) / svgRect.height;
+      const scale = Math.min(scaleX, scaleY);
+      
+      // 设置初始缩放
+      container.dataset.scale = scale.toString();
+      container.dataset.translateX = '0';
+      container.dataset.translateY = '0';
+      updateMermaidTransform(container);
+    }
 
     // 添加ESC键退出全屏
     const handleEscape = (e) => {

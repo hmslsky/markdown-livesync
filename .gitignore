@@ -3,3 +3,7 @@ node_modules
 .vscode-test/
 *.vsix
 .DS_Store
+tests/**/*.md
+!tests/README.md
+docs/mermaid/*.md
+!docs/mermaid/README.md

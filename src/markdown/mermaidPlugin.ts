@@ -8,43 +8,60 @@
 import MarkdownIt = require('markdown-it');
 
 /**
- * 检测Mermaid图表类型
+ * 检测Mermaid图表类型和方向
  */
-function detectChartType(code: string): string {
+function detectChartType(code: string): { type: string; direction: string } {
   const trimmedCode = code.trim().toLowerCase();
+  let type = 'unknown';
+  let direction = 'horizontal';
 
   if (trimmedCode.startsWith('graph') || trimmedCode.startsWith('flowchart')) {
-    return 'flowchart';
+    type = 'flowchart';
+    // 检测方向
+    if (trimmedCode.includes('td') || trimmedCode.includes('bt')) {
+      direction = 'vertical';
+    }
   } else if (trimmedCode.startsWith('sequencediagram')) {
-    return 'sequence';
+    type = 'sequence';
   } else if (trimmedCode.startsWith('gantt')) {
-    return 'gantt';
+    type = 'gantt';
   } else if (trimmedCode.startsWith('classDiagram')) {
-    return 'class';
+    type = 'class';
   } else if (trimmedCode.startsWith('stateDiagram')) {
-    return 'state';
+    type = 'state';
   } else if (trimmedCode.startsWith('pie')) {
-    return 'pie';
+    type = 'pie';
   } else if (trimmedCode.startsWith('journey')) {
-    return 'journey';
+    type = 'journey';
   } else if (trimmedCode.startsWith('gitgraph')) {
-    return 'gitgraph';
+    type = 'gitgraph';
   } else if (trimmedCode.startsWith('erDiagram')) {
-    return 'er';
+    type = 'er';
   }
 
-  return 'unknown';
+  return { type, direction };
 }
 
 /**
  * 分析图表复杂度
  */
-function analyzeChartComplexity(code: string, chartType: string): string {
+function analyzeChartComplexity(code: string, chartType: string, direction: string): string {
   const lines = code.split('\n').filter(line => line.trim().length > 0);
   const nodeCount = countNodes(code, chartType);
   const connectionCount = countConnections(code, chartType);
 
-  // 根据节点数量和连接数量判断复杂度
+  // 对于纵向图表，使用更严格的复杂度判断
+  if (direction === 'vertical') {
+    if (nodeCount <= 3 && connectionCount <= 2) {
+      return 'simple';
+    } else if (nodeCount <= 6 && connectionCount <= 8) {
+      return 'medium';
+    } else {
+      return 'complex';
+    }
+  }
+
+  // 对于其他图表类型，使用原有的判断逻辑
   if (nodeCount <= 3 && connectionCount <= 3) {
     return 'simple';
   } else if (nodeCount <= 8 && connectionCount <= 10) {
@@ -123,13 +140,12 @@ export function mermaidPlugin(md: MarkdownIt): void {
       // 获取Mermaid代码内容
       const mermaidCode = token.content.trim();
 
-      // 分析Mermaid代码以确定图表类型和复杂度
-      const chartType = detectChartType(mermaidCode);
-      const complexity = analyzeChartComplexity(mermaidCode, chartType);
+      // 分析Mermaid代码以确定图表类型、方向和复杂度
+      const { type: chartType, direction } = detectChartType(mermaidCode);
+      const complexity = analyzeChartComplexity(mermaidCode, chartType, direction);
 
       // 创建特殊的HTML结构用于Mermaid渲染
-      // 使用data-mermaid属性存储Mermaid代码，避免HTML转义问题
-      const html = `<div class="mermaid-container" data-line="${token.map ? token.map[0] + 1 : 1}" data-chart-type="${chartType}" data-complexity="${complexity}">
+      const html = `<div class="mermaid-container" data-line="${token.map ? token.map[0] + 1 : 1}" data-chart-type="${chartType}" data-complexity="${complexity}" data-direction="${direction}">
   <div class="mermaid-controls">
     <button class="mermaid-zoom-in" title="放大">🔍+</button>
     <button class="mermaid-zoom-out" title="缩小">🔍-</button>
@@ -137,7 +153,7 @@ export function mermaidPlugin(md: MarkdownIt): void {
     <button class="mermaid-fullscreen" title="全屏">⛶</button>
   </div>
   <div class="mermaid-wrapper">
-    <div id="${mermaidId}" class="mermaid" data-mermaid="${encodeURIComponent(mermaidCode)}" data-chart-type="${chartType}" data-complexity="${complexity}">
+    <div id="${mermaidId}" class="mermaid" data-mermaid="${encodeURIComponent(mermaidCode)}" data-chart-type="${chartType}" data-complexity="${complexity}" data-direction="${direction}">
       ${md.utils.escapeHtml(mermaidCode)}
     </div>
   </div>

@@ -30,6 +30,8 @@ tsconfig.json
 coverage/**
 test/**
 tests/**
+tests/**/*
+!tests/README.md
 **/*.test.js
 **/*.spec.js
 **/*.test.ts
