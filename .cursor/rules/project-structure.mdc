@@ -1,0 +1,23 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# Markdown LiveSync 项目结构
+
+## 核心文件
+- 主入口文件：[src/extension.ts](mdc:src/extension.ts)
+- 配置文件：[package.json](mdc:package.json)
+- 类型定义：[src/types.ts](mdc:src/types.ts)
+
+## 主要目录
+- `src/`: 源代码目录
+- `tests/`: 测试文件目录
+- `docs/`: 文档目录
+- `webview/`: WebView 相关代码
+- `images/`: 图片资源
+
+## 开发文档
+- 开发指南：[docs/development.md](mdc:docs/development.md)
+- 设计文档：[docs/design/](mdc:docs/design)
+- Mermaid 相关：[docs/mermaid/](mdc:docs/mermaid)
