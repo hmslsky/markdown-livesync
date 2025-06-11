@@ -13,7 +13,7 @@ tsconfig.json
 
 # 确保包含必要的文件
 !out/**
-!webview/**
+!media/**
 !images/**
 
 # 开发和测试文件
@@ -48,12 +48,14 @@ samples/**
 !LICENSE
 
 # 构建和依赖文件
-# TODO 需要优化，node_modules 太大了，但目前测试需要全部打包才能使用
-# node_modules/**
-# !node_modules/express
-# !node_modules/markdown-it
-# !node_modules/open
-# !node_modules/ws
+# markdown-it及其所有依赖包
+node_modules/**
+!node_modules/markdown-it/**
+!node_modules/entities/**
+!node_modules/argparse/**
+!node_modules/linkify-it/**
+!node_modules/mdurl/**
+!node_modules/uc.micro/**
 .yarnrc
 .npmrc
 .npmignore

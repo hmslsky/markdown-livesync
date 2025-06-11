@@ -1,0 +1,508 @@
+/**
+ * Markdown LiveSync 预览样式
+ * 
+ * 为VSCode Webview预览面板提供样式定义
+ * 支持VSCode主题适配和响应式设计
+ * 
+ * @author hmslsky
+ * @version 1.0.0
+ */
+
+/* 基础样式 */
+:root {
+  --vscode-font-family: var(--vscode-editor-font-family, 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif);
+  --vscode-font-size: var(--vscode-editor-font-size, 14px);
+  --vscode-line-height: var(--vscode-editor-line-height, 1.6);
+  
+  /* 颜色变量 */
+  --text-color: var(--vscode-foreground);
+  --background-color: var(--vscode-editor-background);
+  --border-color: var(--vscode-panel-border);
+  --link-color: var(--vscode-textLink-foreground);
+  --link-hover-color: var(--vscode-textLink-activeForeground);
+  --code-background: var(--vscode-textCodeBlock-background);
+  --blockquote-background: var(--vscode-textBlockQuote-background);
+  --blockquote-border: var(--vscode-textBlockQuote-border);
+}
+
+/* 全局样式 */
+* {
+  box-sizing: border-box;
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+  font-family: var(--vscode-font-family);
+  font-size: var(--vscode-font-size);
+  line-height: var(--vscode-line-height);
+  color: var(--text-color);
+  background-color: var(--background-color);
+}
+
+/* 容器布局 */
+.container {
+  display: flex;
+  height: 100vh;
+  overflow: hidden;
+}
+
+/* 目录容器 */
+.toc-container {
+  width: 250px;
+  min-width: 200px;
+  max-width: 400px;
+  background-color: var(--vscode-sideBar-background);
+  border-right: 1px solid var(--border-color);
+  overflow-y: auto;
+  resize: horizontal;
+}
+
+.toc-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--border-color);
+  background-color: var(--vscode-sideBarSectionHeader-background);
+}
+
+.toc-header h3 {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--vscode-sideBarSectionHeader-foreground);
+}
+
+.toc-collapse-all,
+.toc-expand-all {
+  background: none;
+  border: none;
+  color: var(--vscode-button-foreground);
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 3px;
+  font-size: 12px;
+}
+
+.toc-collapse-all:hover,
+.toc-expand-all:hover {
+  background-color: var(--vscode-button-hoverBackground);
+}
+
+.toc-content {
+  padding: 8px 0;
+}
+
+/* 目录项样式 */
+.toc-item {
+  margin: 0;
+  padding: 0;
+}
+
+.toc-item-header {
+  display: flex;
+  align-items: center;
+  padding: 2px 8px;
+  cursor: pointer;
+  border-radius: 3px;
+  margin: 0 4px;
+}
+
+.toc-item-header:hover {
+  background-color: var(--vscode-list-hoverBackground);
+}
+
+.toc-toggle {
+  width: 16px;
+  height: 16px;
+  margin-right: 4px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--vscode-foreground);
+  font-size: 10px;
+  transition: transform 0.2s ease;
+}
+
+.toc-toggle.expanded {
+  transform: rotate(90deg);
+}
+
+.toc-toggle-spacer {
+  width: 16px;
+  margin-right: 4px;
+}
+
+.toc-link {
+  color: var(--vscode-foreground);
+  text-decoration: none;
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.toc-link:hover {
+  color: var(--link-hover-color);
+}
+
+.toc-link.level-1 {
+  font-weight: 600;
+}
+
+.toc-link.level-2 {
+  font-weight: 500;
+}
+
+.toc-item.active > .toc-item-header > .toc-link {
+  color: var(--vscode-list-activeSelectionForeground);
+  background-color: var(--vscode-list-activeSelectionBackground);
+}
+
+.toc-children {
+  margin-left: 16px;
+  overflow: hidden;
+  transition: max-height 0.3s ease;
+}
+
+.toc-children.collapsed {
+  max-height: 0;
+}
+
+.toc-children.expanded {
+  max-height: 1000px;
+}
+
+/* 内容容器 */
+.content-container {
+  flex: 1;
+  overflow-y: auto;
+  padding: 20px;
+}
+
+/* 调试工具 */
+.debug-tools {
+  background-color: var(--vscode-panel-background);
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  margin-bottom: 20px;
+  padding: 12px;
+}
+
+.debug-panel h3 {
+  margin: 0 0 8px 0;
+  font-size: 14px;
+  color: var(--vscode-panelTitle-activeForeground);
+}
+
+.debug-info {
+  font-size: 12px;
+  color: var(--vscode-descriptionForeground);
+}
+
+.debug-info p {
+  margin: 4px 0;
+}
+
+/* Markdown内容样式 */
+.markdown-content {
+  max-width: 100%;
+  margin: 0 auto;
+  line-height: var(--vscode-line-height);
+}
+
+.markdown-content h1,
+.markdown-content h2,
+.markdown-content h3,
+.markdown-content h4,
+.markdown-content h5,
+.markdown-content h6 {
+  margin: 1.5em 0 0.5em 0;
+  font-weight: 600;
+  line-height: 1.25;
+  color: var(--text-color);
+}
+
+.markdown-content h1 {
+  font-size: 2em;
+  border-bottom: 1px solid var(--border-color);
+  padding-bottom: 0.3em;
+}
+
+.markdown-content h2 {
+  font-size: 1.5em;
+  border-bottom: 1px solid var(--border-color);
+  padding-bottom: 0.3em;
+}
+
+.markdown-content h3 {
+  font-size: 1.25em;
+}
+
+.markdown-content h4 {
+  font-size: 1em;
+}
+
+.markdown-content h5 {
+  font-size: 0.875em;
+}
+
+.markdown-content h6 {
+  font-size: 0.85em;
+  color: var(--vscode-descriptionForeground);
+}
+
+.markdown-content p {
+  margin: 0.8em 0;
+}
+
+.markdown-content a {
+  color: var(--link-color);
+  text-decoration: none;
+}
+
+.markdown-content a:hover {
+  color: var(--link-hover-color);
+  text-decoration: underline;
+}
+
+/* 代码样式 */
+.markdown-content code {
+  background-color: var(--code-background);
+  padding: 0.2em 0.4em;
+  border-radius: 3px;
+  font-family: var(--vscode-editor-font-family);
+  font-size: 0.9em;
+}
+
+.markdown-content pre {
+  background-color: var(--code-background);
+  padding: 16px;
+  border-radius: 6px;
+  overflow-x: auto;
+  margin: 1em 0;
+}
+
+.markdown-content pre code {
+  background: none;
+  padding: 0;
+  border-radius: 0;
+  font-size: inherit;
+}
+
+/* 引用样式 */
+.markdown-content blockquote {
+  margin: 1em 0;
+  padding: 0 1em;
+  border-left: 4px solid var(--blockquote-border);
+  background-color: var(--blockquote-background);
+  color: var(--vscode-descriptionForeground);
+}
+
+/* 列表样式 */
+.markdown-content ul,
+.markdown-content ol {
+  margin: 0.8em 0;
+  padding-left: 2em;
+}
+
+.markdown-content li {
+  margin: 0.2em 0;
+}
+
+/* 任务列表样式 */
+.markdown-content .task-list-item {
+  list-style: none;
+  margin-left: -1.5em;
+}
+
+.markdown-content .task-list-item input[type="checkbox"] {
+  margin-right: 0.5em;
+}
+
+/* 表格样式 */
+.markdown-content .markdown-table {
+  border-collapse: collapse;
+  margin: 1em 0;
+  width: 100%;
+}
+
+.markdown-content .markdown-table th,
+.markdown-content .markdown-table td {
+  border: 1px solid var(--border-color);
+  padding: 8px 12px;
+  text-align: left;
+}
+
+.markdown-content .markdown-table th {
+  background-color: var(--vscode-editorWidget-background);
+  font-weight: 600;
+}
+
+/* 图片样式 */
+.markdown-content img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 4px;
+  margin: 0.5em 0;
+}
+
+/* 分隔线样式 */
+.markdown-content hr {
+  border: none;
+  border-top: 1px solid var(--border-color);
+  margin: 2em 0;
+}
+
+/* Mermaid图表样式 */
+.mermaid-container {
+  margin: 1em 0;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.mermaid-controls {
+  display: flex;
+  gap: 4px;
+  padding: 8px;
+  background-color: var(--vscode-editorWidget-background);
+  border-bottom: 1px solid var(--border-color);
+}
+
+.mermaid-controls button {
+  background: var(--vscode-button-background);
+  color: var(--vscode-button-foreground);
+  border: none;
+  padding: 4px 8px;
+  border-radius: 3px;
+  cursor: pointer;
+  font-size: 12px;
+}
+
+.mermaid-controls button:hover {
+  background: var(--vscode-button-hoverBackground);
+}
+
+.mermaid-wrapper {
+  padding: 16px;
+  text-align: center;
+  background-color: var(--background-color);
+}
+
+.mermaid {
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+/* 数学公式样式 */
+.math-inline,
+.math-block {
+  font-family: 'Times New Roman', serif;
+}
+
+.math-block {
+  text-align: center;
+  margin: 1em 0;
+  padding: 0.5em;
+}
+
+/* 错误样式 */
+.markdown-error {
+  background-color: var(--vscode-inputValidation-errorBackground);
+  border: 1px solid var(--vscode-inputValidation-errorBorder);
+  border-radius: 4px;
+  padding: 16px;
+  margin: 1em 0;
+}
+
+.markdown-error h3 {
+  margin: 0 0 8px 0;
+  color: var(--vscode-errorForeground);
+}
+
+.markdown-error details {
+  margin-top: 8px;
+}
+
+.markdown-error pre {
+  background-color: var(--vscode-textCodeBlock-background);
+  font-size: 12px;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+/* 行号指示器（隐藏但保留用于定位） */
+.line-indicators {
+  position: absolute;
+  left: -9999px;
+  visibility: hidden;
+}
+
+.line-indicator {
+  height: 1px;
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+  .container {
+    flex-direction: column;
+  }
+  
+  .toc-container {
+    width: 100%;
+    max-height: 200px;
+    resize: vertical;
+  }
+  
+  .content-container {
+    padding: 12px;
+  }
+}
+
+/* 滚动条样式 */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--vscode-scrollbarSlider-background);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--vscode-scrollbarSlider-background);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--vscode-scrollbarSlider-hoverBackground);
+}
+
+/* 动画效果 */
+.toc-item,
+.toc-children {
+  transition: all 0.2s ease;
+}
+
+.markdown-content {
+  animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

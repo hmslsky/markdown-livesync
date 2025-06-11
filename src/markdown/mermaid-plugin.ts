@@ -170,4 +170,4 @@ export function mermaidPlugin(md: MarkdownIt): void {
     // 如果没有原始规则，使用默认处理
     return self.renderToken(tokens, idx, options);
   };
-}
+} 

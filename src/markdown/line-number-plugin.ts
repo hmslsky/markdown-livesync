@@ -134,4 +134,4 @@ export function lineNumberPlugin(md: MarkdownIt): void {
 
     return true;
   });
-}
+} 
