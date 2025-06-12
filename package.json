@@ -2,7 +2,7 @@
   "name": "markdown-livesync",
   "displayName": "Markdown LiveSync",
   "description": "实时同步Markdown编辑与VSCode内置预览，支持目录导航、光标同步和Mermaid图表渲染",
-  "version": "1.0.11",
+  "version": "0.0.18",
   "publisher": "hmslsky",
   "author": "hmslsky",
   "icon": "images/icon.png",

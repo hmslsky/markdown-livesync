@@ -7,10 +7,10 @@
  * @version 1.0.0
  */
 
-import * as markdownIt from 'markdown-it';
+import markdownIt from 'markdown-it';
 import { Logger } from '../utils/logger-util';
 import { mermaidPlugin } from './mermaid-plugin';
-import { lineNumberPlugin } from './line-number-plugin';
+import { dataSourceLinePlugin } from './data-source-line-plugin';
 
 /**
  * Markdown处理器类
@@ -29,9 +29,9 @@ export class MarkdownProcessor {
       typographer: true
     });
 
-    // 注册插件
+    // 应用插件
     (this.md as any).use(mermaidPlugin);
-    (this.md as any).use(lineNumberPlugin);
+    (this.md as any).use(dataSourceLinePlugin);
   }
 
   /**
@@ -52,7 +52,22 @@ export class MarkdownProcessor {
    */
   public convertToHtml(markdown: string): string {
     try {
+      Logger.debug(`[Markdown处理] 开始转换，内容长度: ${markdown.length}`);
+      
       const html = this.md.render(markdown);
+      
+      // 检查生成的HTML中是否包含data-source-line属性
+      const dataSourceLineMatches = html.match(/data-source-line="[^"]*"/g);
+      if (dataSourceLineMatches) {
+        Logger.debug(`[Markdown处理] HTML中包含${dataSourceLineMatches.length}个data-source-line属性`);
+        dataSourceLineMatches.forEach((match, index) => {
+          Logger.debug(`[Markdown处理] data-source-line ${index + 1}: ${match}`);
+        });
+      } else {
+        Logger.warn('[Markdown处理] 警告: 生成的HTML中没有找到data-source-line属性！');
+      }
+      
+      Logger.debug(`[Markdown处理] 转换完成，HTML长度: ${html.length}`);
       return html;
     } catch (error) {
       Logger.error('Markdown转换失败: ' + (error instanceof Error ? error.message : String(error)));

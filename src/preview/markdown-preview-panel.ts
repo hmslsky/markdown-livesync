@@ -146,35 +146,43 @@ export class MarkdownPreviewPanel {
    * @param message 消息对象
    */
   private async handleWebviewMessage(message: any): Promise<void> {
-    this.logger.debug('收到Webview消息');
+    this.logger.debug(`收到Webview消息: ${message.type}`);
     switch (message.type) {
       case 'ready':
+        this.logger.debug('[Webview] 预览面板就绪');
         if (!this.webviewReady) {
           this.webviewReady = true;
           await this.updateContent();
         }
         break;
       case 'click':
+        this.logger.debug('[Webview] 处理点击事件');
         await this.handleClick(message);
         break;
       case 'scroll':
-        this.logger.debug(`[光标同步] 预览同步到编辑器: 第${message.line + 1}行`);
+        this.logger.debug(`[Webview] 处理滚动事件: 第${message.line + 1}行`);
         await this.syncEditorToLine(message.line);
         this.handleScroll(message);
         break;
       case 'toc-click':
-        this.logger.debug(`[光标同步] 预览同步到编辑器: 第${message.line + 1}行`);
+        this.logger.debug(`[Webview] 处理目录点击: 第${message.line + 1}行`);
         await this.syncEditorToLine(message.line);
         await this.handleTocClick(message);
         break;
       case 'sync-cursor':
-        this.logger.debug(`[光标同步] 预览同步到编辑器: 第${message.line + 1}行`);
-        await this.syncEditorToLine(message.line);
+        this.logger.debug(`[Webview] 预览同步到编辑器: 第${message.line + 1}行`);
+        await this.syncEditorToLineWithoutFocus(message.line);
         break;
       case 'toc-toggle':
+        this.logger.debug('[Webview] 处理目录折叠/展开');
         this.handleTocToggle(message);
         break;
+      case 'toc-expand-to-level':
+        this.logger.debug(`[Webview] 处理目录分级展开: 第${message.level}级`);
+        this.handleTocExpandToLevel(message);
+        break;
       case 'debug-info':
+        this.logger.debug('[Webview] 处理调试信息请求');
         this.handleDebugInfo(message);
         break;
       default:
@@ -226,6 +234,14 @@ export class MarkdownPreviewPanel {
       vscode.Uri.file(path.join(__dirname, '..', '..', 'media', 'preview.css'))
     );
     
+    const githubLightUri = this.panel!.webview.asWebviewUri(
+      vscode.Uri.file(path.join(__dirname, '..', '..', 'media', 'github-markdown-light.css'))
+    );
+    
+    const githubDarkUri = this.panel!.webview.asWebviewUri(
+      vscode.Uri.file(path.join(__dirname, '..', '..', 'media', 'github-markdown-dark.css'))
+    );
+    
     const scriptUri = this.panel!.webview.asWebviewUri(
       vscode.Uri.file(path.join(__dirname, '..', '..', 'media', 'preview.js'))
     );
@@ -241,7 +257,18 @@ export class MarkdownPreviewPanel {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${this.panel!.webview.cspSource} 'unsafe-inline'; script-src 'nonce-${nonce}'; img-src ${this.panel!.webview.cspSource} https: data:;">
     <title>Markdown预览</title>
+    <!-- GitHub官方Markdown样式 -->
+    <link rel="stylesheet" href="${githubLightUri}" media="(prefers-color-scheme: light)">
+    <link rel="stylesheet" href="${githubDarkUri}" media="(prefers-color-scheme: dark)">
+    <link rel="stylesheet" href="${githubLightUri}" id="github-light-theme">
+    <link rel="stylesheet" href="${githubDarkUri}" id="github-dark-theme" disabled>
+    <!-- 自定义布局和目录样式 -->
     <link rel="stylesheet" href="${styleUri}">
+    <script nonce="${nonce}">
+        // 传递配置到前端
+        window.markdownLiveSyncConfig = ${JSON.stringify(config)};
+        console.log('[配置] 传递配置到前端:', window.markdownLiveSyncConfig);
+    </script>
     <script nonce="${nonce}" src="${mermaidUri}"></script>
     <script nonce="${nonce}" src="${scriptUri}"></script>
 </head>
@@ -251,7 +278,9 @@ export class MarkdownPreviewPanel {
             ${this.renderTocContainer(toc)}
         </div>
         <div class="content-container">
-            ${html}
+            <div class="markdown-body">
+                ${html}
+            </div>
         </div>
         ${this.debugToolsVisible ? this.renderDebugTools() : ''}
     </div>
@@ -287,7 +316,13 @@ export class MarkdownPreviewPanel {
     return `
       <div class="toc-header">
         <h3>目录</h3>
-        ${config.showToggleButton ? '<button class="toc-toggle">折叠/展开</button>' : ''}
+        <div class="toc-controls">
+          <button class="toc-toggle-visibility" title="隐藏/显示目录">
+            <span class="toc-visibility-icon">👁️</span>
+          </button>
+          <button class="toc-collapse-all" title="折叠所有">📁</button>
+          <button class="toc-expand-all" title="展开所有">📂</button>
+        </div>
       </div>
       <div class="toc-content">
         ${this.tocProvider.renderToc(toc)}
@@ -383,9 +418,25 @@ export class MarkdownPreviewPanel {
       const position = new vscode.Position(message.line, 0);
       const selection = new vscode.Selection(position, position);
       
-      const editor = await vscode.window.showTextDocument(this.currentDocument);
-      editor.selection = selection;
-      editor.revealRange(selection, vscode.TextEditorRevealType.InCenter);
+      // 查找当前文档的编辑器，避免窗口聚焦
+      const editors = vscode.window.visibleTextEditors;
+      const targetEditor = editors.find(editor => 
+        editor.document.uri.toString() === this.currentDocument!.uri.toString()
+      );
+      
+      if (targetEditor) {
+        // 直接在现有编辑器中设置光标位置
+        targetEditor.selection = selection;
+        targetEditor.revealRange(selection, vscode.TextEditorRevealType.InCenter);
+      } else {
+        // 使用preserveFocus选项避免聚焦
+        const editor = await vscode.window.showTextDocument(
+          this.currentDocument,
+          { preserveFocus: true }
+        );
+        editor.selection = selection;
+        editor.revealRange(selection, vscode.TextEditorRevealType.InCenter);
+      }
     } catch (error) {
       this.logger.error('处理目录点击事件失败' + (error instanceof Error ? (' ' + error.message) : ''));
     }
@@ -397,6 +448,18 @@ export class MarkdownPreviewPanel {
    */
   private handleTocToggle(_message: any): void {
     // 处理目录折叠/展开事件的具体逻辑
+  }
+
+  /**
+   * 处理目录分级展开事件
+   * @param message 消息对象
+   */
+  private handleTocExpandToLevel(message: any): void {
+    if (message.level && typeof message.level === 'number') {
+      this.logger.debug(`[目录] 展开到第${message.level}级标题`);
+      // 这里可以保存用户的展开偏好到配置中
+      // 目前主要由前端处理展开逻辑
+    }
   }
 
   /**
@@ -417,20 +480,85 @@ export class MarkdownPreviewPanel {
     this.panel.webview.postMessage({
       type: 'sync-cursor',
       line: position.line,
-      character: position.character
     });
   }
 
   private async syncEditorToLine(line: number): Promise<void> {
-    if (!this.currentDocument) return;
+    if (!this.currentDocument) {
+      this.logger.warn('[同步编辑器] 当前没有文档');
+      return;
+    }
+    
     try {
+      // line参数是0基索引
+      this.logger.debug(`[同步编辑器] 尝试同步到第${line + 1}行 (0基索引: ${line})`);
+      
       const position = new vscode.Position(line, 0);
       const selection = new vscode.Selection(position, position);
-      const editor = await vscode.window.showTextDocument(this.currentDocument);
-      editor.selection = selection;
-      editor.revealRange(selection, vscode.TextEditorRevealType.InCenter);
+      
+      // 查找当前文档的编辑器，避免使用showTextDocument导致窗口聚焦
+      const editors = vscode.window.visibleTextEditors;
+      const targetEditor = editors.find(editor => 
+        editor.document.uri.toString() === this.currentDocument!.uri.toString()
+      );
+      
+      if (targetEditor) {
+        // 直接在现有编辑器中设置光标位置，不会导致窗口聚焦
+        targetEditor.selection = selection;
+        targetEditor.revealRange(selection, vscode.TextEditorRevealType.InCenter);
+        this.logger.debug(`[同步编辑器] 成功同步到第${line + 1}行 (无聚焦)`);
+      } else {
+        // 如果找不到可见的编辑器，则使用preserveFocus选项
+        const editor = await vscode.window.showTextDocument(
+          this.currentDocument, 
+          { 
+            viewColumn: vscode.ViewColumn.One,
+            preserveFocus: true // 关键：不聚焦到编辑器
+          }
+        );
+        editor.selection = selection;
+        editor.revealRange(selection, vscode.TextEditorRevealType.InCenter);
+        this.logger.debug(`[同步编辑器] 成功同步到第${line + 1}行 (preserveFocus)`);
+      }
     } catch (error) {
       this.logger.error('同步编辑器光标失败: ' + (error instanceof Error ? error.message : String(error)));
+    }
+  }
+
+  /**
+   * 同步编辑器到指定行（无聚焦版本，用于预览面板滚动同步）
+   * @param line 行号（0基索引）
+   */
+  private async syncEditorToLineWithoutFocus(line: number): Promise<void> {
+    if (!this.currentDocument) {
+      this.logger.warn('[同步编辑器] 当前没有文档');
+      return;
+    }
+    
+    try {
+      // line参数是0基索引
+      this.logger.debug(`[同步编辑器] 预览滚动同步到第${line + 1}行 (0基索引: ${line})`);
+      
+      const position = new vscode.Position(line, 0);
+      const selection = new vscode.Selection(position, position);
+      
+      // 只查找当前文档的可见编辑器，不创建新的编辑器
+      const editors = vscode.window.visibleTextEditors;
+      const targetEditor = editors.find(editor => 
+        editor.document.uri.toString() === this.currentDocument!.uri.toString()
+      );
+      
+      if (targetEditor) {
+        // 只在现有编辑器中设置光标位置，绝对不聚焦
+        targetEditor.selection = selection;
+        targetEditor.revealRange(selection, vscode.TextEditorRevealType.InCenter);
+        this.logger.debug(`[同步编辑器] 预览滚动同步成功到第${line + 1}行 (无聚焦)`);
+      } else {
+        // 如果没有可见的编辑器，则不进行同步，避免创建新窗口
+        this.logger.debug(`[同步编辑器] 没有找到可见的编辑器，跳过预览滚动同步`);
+      }
+    } catch (error) {
+      this.logger.error('预览滚动同步失败: ' + (error instanceof Error ? error.message : String(error)));
     }
   }
 

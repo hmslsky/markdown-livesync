@@ -188,7 +188,26 @@ export class Extension {
       if (event.textEditor.document.languageId === 'markdown') {
         const panel = MarkdownPreviewPanel.getInstance();
         if (panel.isVisible() && panel.isCurrentDocument(event.textEditor.document)) {
-          panel.syncCursorPosition(event.selections[0].active);
+          const position = event.selections[0].active;
+          Logger.debug(`[光标监听] 编辑器光标变化: 第${position.line + 1}行 第${position.character + 1}列`);
+          panel.syncCursorPosition(position);
+        }
+      }
+    });
+
+    // 监听可见范围变更事件（滚动）
+    const onVisibleRangeChange = vscode.window.onDidChangeTextEditorVisibleRanges(event => {
+      if (event.textEditor.document.languageId === 'markdown') {
+        const panel = MarkdownPreviewPanel.getInstance();
+        if (panel.isVisible() && panel.isCurrentDocument(event.textEditor.document)) {
+          // 使用可见范围的中间行作为当前位置
+          const firstVisibleLine = event.visibleRanges[0];
+          if (firstVisibleLine) {
+            const middleLine = Math.floor((firstVisibleLine.start.line + firstVisibleLine.end.line) / 2);
+            const position = new vscode.Position(middleLine, 0);
+            Logger.debug(`[滚动监听] 编辑器滚动: 可见范围第${middleLine + 1}行`);
+            panel.syncCursorPosition(position);
+          }
         }
       }
     });
@@ -197,7 +216,8 @@ export class Extension {
       onDocumentClose,
       onActiveEditorChange,
       onDocumentChange,
-      onSelectionChange
+      onSelectionChange,
+      onVisibleRangeChange
     );
 
     Logger.info('事件监听器注册完成');

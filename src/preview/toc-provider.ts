@@ -218,8 +218,7 @@ export class TocProvider {
         <button class="toc-toggle ${isExpanded ? 'expanded' : 'collapsed'}" 
                 data-id="${item.id}"
                 data-level="${item.level}"
-                title="${isExpanded ? '折叠' : '展开'}"
-                onclick="toggleTocItem('${item.id}')">
+                title="${isExpanded ? '折叠' : '展开'}">
           <span class="toc-toggle-icon">▶</span>
         </button>
       ` : '<span class="toc-toggle-spacer"></span>';
@@ -230,8 +229,7 @@ export class TocProvider {
            class="toc-link level-${item.level}" 
            data-line="${item.line}"
            data-id="${item.id}"
-           title="跳转到第 ${item.line} 行"
-           onclick="handleTocClick(event, ${item.line})">
+           title="跳转到第 ${item.line} 行">
           ${this.escapeHtml(item.text)}
         </a>
       `;
