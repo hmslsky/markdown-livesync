@@ -1,17 +1,17 @@
 {
   "compilerOptions": {
-    "module": "commonjs",
-    "target": "ES2020",
-    "outDir": "out",
-    "lib": ["ES2020", "DOM"],
-    "sourceMap": true,
-    "rootDir": "src",
-    "strict": true,
-    "esModuleInterop": true,
-    "noImplicitReturns": true,
-    "noFallthroughCasesInSwitch": true,
-    "noUnusedParameters": true,
-    "skipLibCheck": true  // 跳过对声明文件的类型检查
+    "module": "commonjs",        // 使用 CommonJS 模块系统，适合 Node.js 环境
+    "target": "ES2020",          // 编译目标为 ES2020 标准
+    "outDir": "out",             // 编译输出目录为 out
+    "lib": ["ES2020", "DOM"],    // 包含 ES2020 和 DOM 类型定义
+    "sourceMap": true,           // 生成源码映射文件，方便调试
+    "rootDir": "src",            // 源代码根目录为 src
+    "strict": true,              // 启用所有严格类型检查选项
+    "esModuleInterop": true,     // 允许使用 import 导入 CommonJS 模块
+    "noImplicitReturns": true,   // 确保函数中所有代码路径都有返回值
+    "noFallthroughCasesInSwitch": true,  // 防止 switch 语句贯穿
+    "noUnusedParameters": true,  // 检查未使用的参数
+    "skipLibCheck": true         // 跳过对声明文件的类型检查，提高编译速度
   },
-  "exclude": ["node_modules", ".vscode-test"]
+  "exclude": ["node_modules", ".vscode-test"]  // 排除不需要编译的目录
 }

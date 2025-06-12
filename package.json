@@ -24,15 +24,15 @@
     "commands": [
       {
         "command": "markdown-livesync.openPreview",
-        "title": "Markdown LiveSync: 打开预览"
+        "title": "Markdown LiveSync: Preview"
       },
       {
         "command": "markdown-livesync.openPreviewToSide",
-        "title": "Markdown LiveSync: 在侧边打开预览"
+        "title": "Markdown LiveSync: Preview in Side"
       },
       {
         "command": "markdown-livesync.toggleDebugTools",
-        "title": "Markdown LiveSync: 切换调试工具"
+        "title": "Markdown LiveSync: Toggle Debug Tools"
       }
     ],
     "menus": {
@@ -89,7 +89,7 @@
             },
             "highlightOnScroll": {
               "type": "boolean",
-              "default": false,
+              "default": true,
               "description": "滚动到指定位置时是否高亮显示目标元素"
             }
           }
