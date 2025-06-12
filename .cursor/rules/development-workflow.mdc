@@ -5,30 +5,92 @@ alwaysApply: false
 ---
 # 开发流程指南
 
+## 开发环境设置
+1. 依赖安装
+   - 运行 `npm install` 安装依赖
+   - 确保 TypeScript 编译器可用
+   - 安装 `vsce` 用于扩展打包
+
+2. 编译和构建
+   - 使用 `npm run compile` 编译 TypeScript
+   - 使用 `npm run watch` 监听文件变化自动编译
+   - 编译输出在 `out/` 目录
+
 ## 调试流程
-1. 使用 VS Code 调试器
-   - 按 F5 启动调试
-   - 在 [launch.json](mdc:.vscode/launch.json) 中配置调试参数
+1. VS Code 调试
+   - 按 F5 启动扩展开发主机
+   - 在新窗口中测试扩展功能
+   - 使用断点调试 TypeScript 代码
 
-2. 日志记录
-   - 使用 `vscode.window.showInformationMessage()` 显示信息
-   - 使用 `console.log()` 输出调试信息
-   - 查看调试控制台输出
+2. 日志调试
+   - 使用 [src/utils/logger.ts](mdc:src/utils/logger.ts) 记录日志
+   - 在开发者工具中查看 WebView 控制台
+   - 使用 `Logger.debug()` 输出详细调试信息
 
-## 测试流程
-1. 单元测试
-   - 测试文件位于 [tests/](mdc:tests) 目录
-   - 运行 `npm test` 执行测试
+3. 前端调试
+   - 在预览面板右键选择"检查元素"
+   - 调试 [media/preview.js](mdc:media/preview.js) 中的 JavaScript
+   - 检查 CSS 样式和响应式布局
 
-2. 集成测试
-   - 在 [tests/](mdc:tests) 目录下创建集成测试
-   - 使用 VS Code 测试 API 模拟用户操作
+## 性能优化测试
+1. 同步性能测试
+   - 测试编辑器到预览的同步延迟
+   - 验证防抖机制是否正常工作
+   - 检查内存泄漏和资源释放
 
-## 发布流程
-1. 版本更新
+2. 大文档测试
+   - 使用包含大量标题的长文档测试
+   - 验证目录生成和导航性能
+   - 测试 Mermaid 图表渲染性能
+
+## 功能测试流程
+1. 核心功能测试
+   - 测试双向滚动同步
+   - 验证目录展开/折叠功能
+   - 测试主题切换功能
+   - 验证响应式布局
+
+2. 边界情况测试
+   - 测试空文档和无标题文档
+   - 验证特殊字符和 Unicode 支持
+   - 测试大量嵌套标题的处理
+
+## 版本发布流程
+1. 版本准备
    - 更新 [package.json](mdc:package.json) 中的版本号
-   - 更新 [CHANGELOG.md](mdc:CHANGELOG.md)
+   - 更新 [FINAL_FEATURE_SUMMARY.md](mdc:FINAL_FEATURE_SUMMARY.md) 记录新功能
+   - 确保所有功能正常工作
 
 2. 打包发布
+   - 运行 `npm run compile` 确保代码编译无误
    - 使用 `vsce package` 生成 .vsix 文件
+   - 验证打包文件大小和内容
    - 使用 `vsce publish` 发布到市场
+
+## 代码质量检查
+1. 类型检查
+   - 确保 TypeScript 编译无错误
+   - 检查类型定义的完整性
+   - 验证接口和类型的一致性
+
+2. 代码审查要点
+   - 检查性能优化实现
+   - 验证错误处理的完整性
+   - 确保资源正确释放
+   - 检查用户体验的一致性
+
+## 常见问题排查
+1. 同步问题
+   - 检查事件监听器是否正确注册
+   - 验证防抖和节流机制
+   - 查看 [src/core/extension-service.ts](mdc:src/core/extension-service.ts) 中的同步逻辑
+
+2. 样式问题
+   - 检查 GitHub 样式文件是否正确加载
+   - 验证 CSS 自定义属性的设置
+   - 测试不同主题下的显示效果
+
+3. 性能问题
+   - 使用开发者工具分析性能瓶颈
+   - 检查内存使用情况
+   - 优化频繁触发的事件处理

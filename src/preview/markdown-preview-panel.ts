@@ -476,6 +476,8 @@ export class MarkdownPreviewPanel {
    */
   public syncCursorPosition(position: vscode.Position): void {
     if (!this.panel) return;
+    
+    // 无论预览面板是否可见都进行同步，确保实时性
     this.logger.debug(`[光标同步] 编辑器同步到预览: 第${position.line + 1}行`);
     this.panel.webview.postMessage({
       type: 'sync-cursor',

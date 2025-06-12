@@ -183,31 +183,55 @@ export class Extension {
       }
     });
 
-    // 监听光标位置变更事件
+    // 防抖变量
+    let syncTimeout: NodeJS.Timeout | undefined;
+    let lastSyncTime = 0;
+    const SYNC_DEBOUNCE_DELAY = 50; // 50ms防抖
+    const MIN_SYNC_INTERVAL = 100; // 最小同步间隔100ms
+
+    // 监听光标位置变更事件（优先级高，立即同步）
     const onSelectionChange = vscode.window.onDidChangeTextEditorSelection(event => {
       if (event.textEditor.document.languageId === 'markdown') {
         const panel = MarkdownPreviewPanel.getInstance();
-        if (panel.isVisible() && panel.isCurrentDocument(event.textEditor.document)) {
+        if (panel.isCurrentDocument(event.textEditor.document)) {
           const position = event.selections[0].active;
           Logger.debug(`[光标监听] 编辑器光标变化: 第${position.line + 1}行 第${position.character + 1}列`);
-          panel.syncCursorPosition(position);
+          
+          // 立即同步光标位置，无论预览面板是否可见
+          const now = Date.now();
+          if (now - lastSyncTime > MIN_SYNC_INTERVAL) {
+            lastSyncTime = now;
+            panel.syncCursorPosition(position);
+          }
         }
       }
     });
 
-    // 监听可见范围变更事件（滚动）
+    // 监听可见范围变更事件（滚动，使用防抖）
     const onVisibleRangeChange = vscode.window.onDidChangeTextEditorVisibleRanges(event => {
       if (event.textEditor.document.languageId === 'markdown') {
         const panel = MarkdownPreviewPanel.getInstance();
-        if (panel.isVisible() && panel.isCurrentDocument(event.textEditor.document)) {
-          // 使用可见范围的中间行作为当前位置
-          const firstVisibleLine = event.visibleRanges[0];
-          if (firstVisibleLine) {
-            const middleLine = Math.floor((firstVisibleLine.start.line + firstVisibleLine.end.line) / 2);
-            const position = new vscode.Position(middleLine, 0);
-            Logger.debug(`[滚动监听] 编辑器滚动: 可见范围第${middleLine + 1}行`);
-            panel.syncCursorPosition(position);
+        if (panel.isCurrentDocument(event.textEditor.document)) {
+          // 清除之前的防抖定时器
+          if (syncTimeout) {
+            clearTimeout(syncTimeout);
           }
+          
+          // 使用防抖避免频繁触发
+          syncTimeout = setTimeout(() => {
+            const firstVisibleLine = event.visibleRanges[0];
+            if (firstVisibleLine) {
+              const middleLine = Math.floor((firstVisibleLine.start.line + firstVisibleLine.end.line) / 2);
+              const position = new vscode.Position(middleLine, 0);
+              Logger.debug(`[滚动监听] 编辑器滚动: 可见范围第${middleLine + 1}行`);
+              
+              const now = Date.now();
+              if (now - lastSyncTime > MIN_SYNC_INTERVAL) {
+                lastSyncTime = now;
+                panel.syncCursorPosition(position);
+              }
+            }
+          }, SYNC_DEBOUNCE_DELAY);
         }
       }
     });

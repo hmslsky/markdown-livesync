@@ -155,7 +155,7 @@ graph TD
 ### 调试设置
 - `markdown-livesync.debug`: 启用调试日志（默认：false）
 
-## 项目结构
+## 📁 项目结构
 
 ```
 markdown-livesync/
@@ -168,23 +168,61 @@ markdown-livesync/
 │   │   └── toc-provider.ts           # 目录导航提供者
 │   ├── markdown/           # Markdown处理
 │   │   ├── markdown-processor.ts    # Markdown处理器
-│   │   ├── mermaid-plugin.ts        # Mermaid图表插件
-│   │   └── line-number-plugin.ts    # 行号插件
+│   │   └── plugins/               # 插件系统
 │   ├── config/             # 配置管理
-│   │   └── config-manager.ts        # 配置管理器
+│   │   ├── config-manager.ts     # 配置管理器
+│   │   └── config-types.ts       # 配置类型定义
 │   ├── utils/              # 工具函数
-│   │   ├── logger-util.ts  # 日志工具
-│   │   └── debounce-util.ts # 防抖工具
+│   │   ├── logger.ts       # 日志工具
+│   │   └── file-utils.ts   # 文件工具
 │   └── types/              # 类型定义
-│       └── markdown-it.d.ts # markdown-it类型定义
-├── media/                  # 媒体资源
+│       └── index.ts        # 全局类型定义
+├── media/                  # WebView资源
+│   ├── preview.css         # 预览样式
+│   ├── preview.js          # 预览脚本
+│   ├── github-markdown-light.css # GitHub浅色主题
+│   └── github-markdown-dark.css  # GitHub深色主题
+├── docs/                   # 📚 标准化文档结构
+│   ├── README.md          # 文档导航中心
+│   ├── guides/            # 用户指南
+│   │   ├── quick-start.md     # 快速开始
+│   │   ├── configuration.md   # 配置指南
+│   │   └── troubleshooting.md # 故障排除
+│   ├── design/            # 开发者文档
+│   │   ├── 01-project-overview.md    # 项目概览
+│   │   ├── 02-architecture-design.md # 架构设计
+│   │   ├── 03-module-details.md      # 模块详解
+│   │   └── 04-development-guide.md   # 开发指南
+│   ├── api/               # API文档
+│   │   └── README.md      # API参考
+│   ├── examples/          # 使用示例
+│   │   └── README.md      # 示例导航
+│   ├── mermaid/           # Mermaid专项文档
+│   └── refactor/          # 重构记录
 ├── tests/                  # 测试文件
-├── docs/                   # 文档
-│   ├── design/            # 设计文档
-│   ├── mermaid/           # Mermaid相关文档
-│   └── refactor/          # 重构说明文档
-└── images/                 # 图标等图片资源
+│   ├── README.md          # 测试文档
+│   ├── layout/            # 布局测试
+│   └── mermaid/           # Mermaid测试
+├── releases/              # 版本发布
+│   └── *.vsix            # VSIX发布文件
+└── images/                # 图标资源
 ```
+
+## 📚 文档导航
+
+### 🚀 快速开始
+- [5分钟上手指南](docs/guides/quick-start.md) - 快速安装和使用
+- [配置指南](docs/guides/configuration.md) - 详细配置选项
+- [故障排除](docs/guides/troubleshooting.md) - 常见问题解决
+
+### 👨‍💻 开发者文档
+- [架构设计](docs/design/02-architecture-design.md) - 系统架构说明
+- [开发指南](docs/design/04-development-guide.md) - 开发环境设置
+- [API文档](docs/api/README.md) - 完整API参考
+
+### 📖 使用示例
+- [功能演示](docs/examples/README.md) - 各种使用示例
+- [测试用例](tests/README.md) - 测试文档和验证
 
 ## 开发
 

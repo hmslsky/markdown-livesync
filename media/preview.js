@@ -22,6 +22,12 @@
   let currentTheme = 'light'; // 默认主题
   let tocFloating = false;
   let tocVisible = false;
+  
+  // 同步控制变量
+  let lastSyncTime = 0;
+  let syncDebounceTimeout = null;
+  const MIN_SYNC_INTERVAL = 50; // 最小同步间隔50ms
+  const SYNC_DEBOUNCE_DELAY = 30; // 防抖延迟30ms
 
   /**
    * 初始化函数
@@ -257,46 +263,71 @@
       return;
     }
     
-    const options = { root: null, rootMargin: '0px', threshold: 0.1 };
+    // 优化观察器配置，提高响应性
+    const options = { 
+      root: null, 
+      rootMargin: '-10% 0px -10% 0px', // 调整边距，更精确地检测可见元素
+      threshold: [0, 0.1, 0.5] // 多个阈值，提高检测精度
+    };
+    
     const observer = new IntersectionObserver((entries, observer) => {
       if (isScrolling) {
         console.log('[滚动同步] 跳过IntersectionObserver回调 - 正在滚动中');
         return;
       }
       
-      let topVisibleElement = null;
-      let minTop = Infinity;
-      
-      console.log(`[滚动同步] IntersectionObserver回调 - ${entries.length}个条目`);
-      
-      entries.forEach(entry => {
-        if (entry.isIntersecting) {
-          const rect = entry.boundingClientRect;
-          const sourceLine = entry.target.dataset.sourceLine;
-          console.log(`[滚动同步] 可见元素: ${entry.target.tagName} line=${sourceLine} top=${rect.top.toFixed(2)}`);
-          
-          if (rect.top < minTop) {
-            minTop = rect.top;
-            topVisibleElement = entry.target;
-          }
-        }
-      });
-      
-      if (topVisibleElement) {
-        const line = parseInt(topVisibleElement.dataset.sourceLine, 10);
-        if (!isNaN(line) && line !== currentLine) {
-          console.log(`[滚动同步] 预览同步到编辑器: 从第${currentLine}行 -> 第${line}行`);
-          currentLine = line;
-          // 更新目录高亮
-          updateTocHighlight(line);
-          vscode.postMessage({ 
-            type: 'sync-cursor', 
-            line: line - 1 // 转换为0基索引
-          });
-        }
-      } else {
-        console.log('[滚动同步] 没有找到可见的顶部元素');
+      // 防抖处理，避免频繁触发
+      const now = Date.now();
+      if (now - lastSyncTime < MIN_SYNC_INTERVAL) {
+        return;
       }
+      
+      // 清除之前的防抖定时器
+      if (syncDebounceTimeout) {
+        clearTimeout(syncDebounceTimeout);
+      }
+      
+      // 使用防抖延迟处理
+      syncDebounceTimeout = setTimeout(() => {
+        let topVisibleElement = null;
+        let minTop = Infinity;
+        
+        console.log(`[滚动同步] IntersectionObserver回调 - ${entries.length}个条目`);
+        
+        entries.forEach(entry => {
+          if (entry.isIntersecting) {
+            const rect = entry.boundingClientRect;
+            const sourceLine = entry.target.dataset.sourceLine;
+            console.log(`[滚动同步] 可见元素: ${entry.target.tagName} line=${sourceLine} top=${rect.top.toFixed(2)}`);
+            
+            // 选择最接近视口顶部的元素
+            if (rect.top >= -50 && rect.top < minTop) { // 允许一定的负值容差
+              minTop = rect.top;
+              topVisibleElement = entry.target;
+            }
+          }
+        });
+        
+        if (topVisibleElement) {
+          const line = parseInt(topVisibleElement.dataset.sourceLine, 10);
+          if (!isNaN(line) && line !== currentLine) {
+            console.log(`[滚动同步] 预览同步到编辑器: 从第${currentLine}行 -> 第${line}行`);
+            currentLine = line;
+            lastSyncTime = Date.now();
+            
+            // 更新目录高亮
+            updateTocHighlight(line);
+            
+            // 发送同步消息到编辑器
+            vscode.postMessage({ 
+              type: 'sync-cursor', 
+              line: line - 1 // 转换为0基索引
+            });
+          }
+        } else {
+          console.log('[滚动同步] 没有找到可见的顶部元素');
+        }
+      }, SYNC_DEBOUNCE_DELAY);
     }, options);
 
     elements.forEach((el, index) => {
@@ -493,19 +524,24 @@
     const element = findClosestElement(line);
     if (element) {
       console.log(`[光标同步] 找到目标元素: ${element.tagName} data-source-line="${element.dataset.sourceLine}"`);
+      
+      // 设置滚动标志，防止反向同步
       isScrolling = true;
+      
+      // 使用instant滚动减少延迟，但保持居中对齐
       element.scrollIntoView({
-        behavior: 'smooth',
+        behavior: 'instant', // 改为instant减少延迟
         block: 'center',
       });
       
       // 更新目录高亮
       updateTocHighlight(line + 1);
       
+      // 减少滚动锁定时间
       setTimeout(() => { 
         isScrolling = false; 
         console.log('[光标同步] 滚动完成，重新启用预览到编辑器同步');
-      }, 500);
+      }, 100); // 从500ms减少到100ms
     } else {
       console.warn(`[光标同步] 警告: 找不到第${line + 1}行对应的元素`);
     }
@@ -944,9 +980,9 @@
     if (activeItem) {
       activeItem.classList.add('active');
       
-      // 确保活动项可见
+      // 确保活动项可见，使用instant滚动减少延迟
       activeItem.scrollIntoView({
-        behavior: 'smooth',
+        behavior: 'instant', // 改为instant减少延迟
         block: 'nearest'
       });
       

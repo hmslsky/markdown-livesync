@@ -7,14 +7,69 @@ alwaysApply: false
 
 ## TypeScript 规范
 1. 类型定义
-   - 使用 [src/types.ts](mdc:src/types.ts) 定义共享类型
+   - 使用 [src/types/index.ts](mdc:src/types/index.ts) 定义共享类型
+   - 配置相关类型在 [src/config/config-types.ts](mdc:src/config/config-types.ts)
    - 为所有函数参数和返回值添加类型注解
-   - 使用接口定义对象结构
+   - 使用接口定义对象结构，避免使用 `any` 类型
 
 2. 命名规范
-   - 使用 PascalCase 命名类和接口
-   - 使用 camelCase 命名变量和函数
-   - 使用 UPPER_CASE 命名常量
+   - 使用 PascalCase 命名类和接口（如 `MarkdownPreviewPanel`）
+   - 使用 camelCase 命名变量和函数（如 `syncCursorPosition`）
+   - 使用 kebab-case 命名文件（如 `markdown-preview-panel.ts`）
+   - 使用 UPPER_CASE 命名常量（如 `MIN_SYNC_INTERVAL`）
+
+## 架构模式
+1. 单例模式
+   - 核心服务使用单例模式，如 [src/preview/markdown-preview-panel.ts](mdc:src/preview/markdown-preview-panel.ts)
+   - 使用 `getInstance()` 方法获取实例
+
+2. 模块化设计
+   - 按功能划分模块：config、core、preview、markdown、utils
+   - 每个模块有明确的职责边界
+   - 使用依赖注入减少耦合
+
+## 性能优化规范
+1. 防抖和节流
+   - 对频繁触发的事件使用防抖机制
+   - 设置最小同步间隔避免过度触发
+   - 参考 [src/core/extension-service.ts](mdc:src/core/extension-service.ts) 中的实现
+
+2. 内存管理
+   - 及时清理事件监听器和定时器
+   - 使用 `disposables` 数组管理资源
+   - 在 `dispose()` 方法中释放所有资源
+
+## 前端代码规范
+1. JavaScript 规范
+   - 在 [media/preview.js](mdc:media/preview.js) 中使用现代 JavaScript
+   - 使用 `const` 和 `let`，避免 `var`
+   - 使用箭头函数和解构赋值
+
+2. CSS 规范
+   - 使用 CSS 自定义属性（CSS Variables）
+   - 遵循 BEM 命名规范
+   - 响应式设计优先，参考 [media/preview.css](mdc:media/preview.css)
+
+## 错误处理
+1. 异常捕获
+   - 使用 try-catch 包装可能出错的代码
+   - 记录详细的错误信息到日志
+   - 使用 [src/utils/logger.ts](mdc:src/utils/logger.ts) 统一日志记录
+
+2. 用户友好的错误提示
+   - 避免直接暴露技术错误信息
+   - 提供有意义的错误提示和解决建议
+
+## 文档规范
+1. 代码注释
+   - 使用 JSDoc 格式注释公共 API
+   - 解释复杂的业务逻辑和算法
+   - 标注参数类型和返回值
+
+2. 功能文档
+   - 及时更新 [FINAL_FEATURE_SUMMARY.md](mdc:FINAL_FEATURE_SUMMARY.md)
+   - 记录重要的架构决策和变更
+   - 保持文档与代码同步
 
 ## 文件组织
 1. 源代码组织
@@ -22,18 +77,4 @@ alwaysApply: false
    - 使用 index.ts 导出公共接口
    - 保持文件结构清晰
 
-2. 测试文件组织
-   - 测试文件与源文件对应
-   - 使用 `.test.ts` 后缀
-   - 按功能模块组织测试
 
-## 文档规范
-1. 代码注释
-   - 使用 JSDoc 格式注释
-   - 为公共 API 添加详细说明
-   - 解释复杂的业务逻辑
-
-2. 文档维护
-   - 及时更新 [docs/](mdc:docs) 目录下的文档
-   - 保持文档与代码同步
-   - 使用 Markdown 格式编写文档

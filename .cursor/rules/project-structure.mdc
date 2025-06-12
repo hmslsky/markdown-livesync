@@ -1,23 +1,97 @@
 ---
 description: 
 globs: 
-alwaysApply: false
+alwaysApply: true
 ---
 # Markdown LiveSync 项目结构
 
-## 核心文件
-- 主入口文件：[src/extension.ts](mdc:src/extension.ts)
-- 配置文件：[package.json](mdc:package.json)
-- 类型定义：[src/types.ts](mdc:src/types.ts)
+## 核心入口文件
+- 扩展主入口：[src/app.ts](mdc:src/app.ts) - 扩展激活和注册
+- 扩展服务：[src/core/extension-service.ts](mdc:src/core/extension-service.ts) - 核心服务管理
+- 类型定义：[src/types/index.ts](mdc:src/types/index.ts) - 全局类型定义
 
-## 主要目录
-- `src/`: 源代码目录
-- `tests/`: 测试文件目录
-- `docs/`: 文档目录
-- `webview/`: WebView 相关代码
-- `images/`: 图片资源
+## 核心模块架构
+### 配置管理
+- 配置管理器：[src/config/config-manager.ts](mdc:src/config/config-manager.ts)
+- 配置类型：[src/config/config-types.ts](mdc:src/config/config-types.ts)
 
-## 开发文档
-- 开发指南：[docs/development.md](mdc:docs/development.md)
-- 设计文档：[docs/design/](mdc:docs/design)
-- Mermaid 相关：[docs/mermaid/](mdc:docs/mermaid)
+### 预览系统
+- 预览面板：[src/preview/markdown-preview-panel.ts](mdc:src/preview/markdown-preview-panel.ts) - WebView面板管理
+- 目录提供器：[src/preview/toc-provider.ts](mdc:src/preview/toc-provider.ts) - 目录生成和管理
+
+### Markdown处理
+- 处理器：[src/markdown/markdown-processor.ts](mdc:src/markdown/markdown-processor.ts) - Markdown转HTML
+- 插件系统：[src/markdown/plugins/](mdc:src/markdown/plugins) - Mermaid等插件
+
+### 工具模块
+- 日志系统：[src/utils/logger.ts](mdc:src/utils/logger.ts)
+- 文件工具：[src/utils/file-utils.ts](mdc:src/utils/file-utils.ts)
+
+## 前端资源
+### WebView资源
+- 样式文件：[media/preview.css](mdc:media/preview.css) - 自定义布局样式
+- 交互脚本：[media/preview.js](mdc:media/preview.js) - 前端交互逻辑
+- GitHub样式：[media/github-markdown-light.css](mdc:media/github-markdown-light.css) 和 [media/github-markdown-dark.css](mdc:media/github-markdown-dark.css)
+
+## 配置文件
+- 扩展配置：[package.json](mdc:package.json) - 扩展元数据和依赖
+- TypeScript配置：[tsconfig.json](mdc:tsconfig.json)
+
+## 标准化文档结构
+### 文档根目录
+- 文档索引：[docs/README.md](mdc:docs/README.md) - 文档导航中心
+- 功能总结：[docs/FEATURE_SUMMARY.md](mdc:docs/FEATURE_SUMMARY.md) - 完整功能文档
+
+### 用户指南 (docs/guides/)
+- 快速开始：[docs/guides/quick-start.md](mdc:docs/guides/quick-start.md) - 5分钟上手指南
+- 用户手册：[docs/guides/user-guide.md](mdc:docs/guides/user-guide.md) - 完整功能说明
+- 配置指南：[docs/guides/configuration.md](mdc:docs/guides/configuration.md) - 详细配置选项
+- 故障排除：[docs/guides/troubleshooting.md](mdc:docs/guides/troubleshooting.md) - 常见问题解决
+- 常见问题：[docs/guides/faq.md](mdc:docs/guides/faq.md) - FAQ文档
+- 主题系统：[docs/guides/themes.md](mdc:docs/guides/themes.md) - 主题使用指南
+
+### 开发者文档 (docs/design/)
+- 项目概览：[docs/design/01-project-overview.md](mdc:docs/design/01-project-overview.md) - 项目背景和目标
+- 架构设计：[docs/design/02-architecture-design.md](mdc:docs/design/02-architecture-design.md) - 系统架构说明
+- 模块详解：[docs/design/03-module-details.md](mdc:docs/design/03-module-details.md) - 各模块实现细节
+- 开发指南：[docs/design/04-development-guide.md](mdc:docs/design/04-development-guide.md) - 开发环境和贡献指南
+
+### API文档 (docs/api/)
+- API索引：[docs/api/README.md](mdc:docs/api/README.md) - API文档导航
+- 扩展服务：[docs/api/extension-service.md](mdc:docs/api/extension-service.md) - 核心服务接口
+- 配置管理：[docs/api/config-manager.md](mdc:docs/api/config-manager.md) - 配置管理接口
+- 预览面板：[docs/api/preview-panel.md](mdc:docs/api/preview-panel.md) - 预览面板接口
+- 目录提供器：[docs/api/toc-provider.md](mdc:docs/api/toc-provider.md) - 目录管理接口
+- 类型定义：[docs/api/types/](mdc:docs/api/types/) - 类型定义文档
+
+### 使用示例 (docs/examples/)
+- 示例索引：[docs/examples/README.md](mdc:docs/examples/README.md) - 示例文档导航
+- 基本预览：[docs/examples/basic-preview.md](mdc:docs/examples/basic-preview.md) - 基础功能演示
+- 目录导航：[docs/examples/toc-navigation.md](mdc:docs/examples/toc-navigation.md) - 目录功能演示
+- 主题切换：[docs/examples/theme-switching.md](mdc:docs/examples/theme-switching.md) - 主题系统演示
+- Mermaid图表：[docs/examples/mermaid-charts.md](mdc:docs/examples/mermaid-charts.md) - 图表功能演示
+- 测试文档：[docs/examples/test-*.md](mdc:docs/examples/) - 各种测试用例
+
+### 专项文档
+- 重构记录：[docs/refactor/](mdc:docs/refactor) - 重构历史和分析
+- Mermaid文档：[docs/mermaid/](mdc:docs/mermaid) - 图表功能专项文档
+
+## 项目根目录
+- 项目说明：[README.md](mdc:README.md) - 项目整体概述
+- 更新日志：[CHANGELOG.md](mdc:CHANGELOG.md) - 版本更新记录
+- 许可证：[LICENSE](mdc:LICENSE) - 开源许可证
+
+## 测试目录
+- 布局测试：[tests/layout/](mdc:tests/layout) - 布局相关测试
+- Mermaid测试：[tests/mermaid/](mdc:tests/mermaid) - 图表功能测试
+- 测试说明：[tests/README.md](mdc:tests/README.md) - 测试文档索引
+
+## 发布目录
+- 版本发布：[releases/](mdc:releases/) - VSIX发布文件存储
+
+## 文档组织原则
+1. **分层结构**：用户指南 → 开发者文档 → API参考 → 示例演示
+2. **导航清晰**：每个目录都有README.md作为索引
+3. **内容分离**：用户文档与开发者文档分离
+4. **示例丰富**：提供完整的使用示例和测试用例
+5. **版本管理**：文档版本与扩展版本同步更新
