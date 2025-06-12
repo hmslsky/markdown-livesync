@@ -48,6 +48,7 @@ export class TocProvider {
   constructor() {
     this.configManager = ConfigurationManager.getInstance();
     this.logger = Logger;
+    this.logger.info('TocProvider初始化完成');
   }
 
   /**
@@ -56,21 +57,28 @@ export class TocProvider {
    * @returns 目录项数组
    */
   public generateToc(document: vscode.TextDocument): TocItem[] {
-    // const timer = this.logger.createTimer('generateToc');
+    this.logger.debug('开始生成目录');
     
     try {
+      // 检查配置
+      const config = this.configManager.getTocConfig();
+      if (!config.enabled) {
+        this.logger.warn('目录功能已禁用');
+        return [];
+      }
+
       const toc: TocItem[] = [];
       const lines = document.getText().split('\n');
-      const config = this.configManager.getTocConfig();
       
-      // 正则表达式匹配标题行
-      const headerRegex = /^(#{1,6})\s+(.+)$/;
+      // 增强的标题匹配正则表达式
+      const headerRegex = /^(#{1,6})\s+(.+?)(?:\s+#+)?$/;
       
-      // 跟踪是否在代码块内
+      // 代码块状态跟踪
       let inCodeBlock = false;
-      let inIndentedCodeBlock = false;
-      let consecutiveEmptyLines = 0;
-      let previousLineIsList = false;
+      let inIndentedCodeBlock = false;  // 缩进代码块状态
+      let consecutiveEmptyLines = 0;   // 连续空行计数
+      let previousLineIsList = false;  // 前一行是否是列表项
+      let codeBlockFence = '';  // 代码块分隔符
       
       for (let i = 0; i < lines.length; i++) {
         const line = lines[i];
@@ -89,6 +97,7 @@ export class TocProvider {
         // 检查缩进代码块的结束
         if (inIndentedCodeBlock && consecutiveEmptyLines >= 1 && !line.startsWith('    ') && !line.startsWith('\t') && !isListItem) {
           inIndentedCodeBlock = false;
+          this.logger.debug(`缩进代码块结束于第 ${i + 1} 行`);
         }
         
         // 重置空行计数
@@ -96,7 +105,16 @@ export class TocProvider {
         
         // 检查围栏代码块
         if (trimmedLine.startsWith('```') || trimmedLine.startsWith('~~~')) {
-          inCodeBlock = !inCodeBlock;
+          if (!inCodeBlock) {
+            // 开始新的代码块
+            codeBlockFence = trimmedLine.slice(0, 3);
+            inCodeBlock = true;
+            this.logger.debug(`代码块开始于第 ${i + 1} 行，使用 ${codeBlockFence} 作为分隔符`);
+          } else if (trimmedLine.startsWith(codeBlockFence)) {
+            // 结束当前代码块
+            inCodeBlock = false;
+            this.logger.debug(`代码块结束于第 ${i + 1} 行`);
+          }
           previousLineIsList = false;
           continue;
         }
@@ -104,6 +122,7 @@ export class TocProvider {
         // 检查缩进代码块的开始
         if (!inCodeBlock && !inIndentedCodeBlock && (line.startsWith('    ') || line.startsWith('\t')) && !isListItem && !previousLineIsList) {
           inIndentedCodeBlock = true;
+          this.logger.debug(`缩进代码块开始于第 ${i + 1} 行`);
         }
         
         // 如果在代码块内，跳过
@@ -134,6 +153,7 @@ export class TocProvider {
           };
           
           toc.push(tocItem);
+          this.logger.debug(`找到标题: ${text} (级别 ${level}) 在第 ${i + 1} 行`);
         }
         
         previousLineIsList = isListItem;
@@ -142,14 +162,12 @@ export class TocProvider {
       // 构建层次结构
       const hierarchicalToc = this.buildTocTree(toc);
       
-      this.logger.debug(`生成目录完成，共 ${toc.length} 个标题`);
+      this.logger.info(`目录生成完成，共 ${toc.length} 个标题`);
       return hierarchicalToc;
       
     } catch (error) {
-      this.logger.error('生成目录失败: ' + (error instanceof Error ? error.message : String(error)));
+      this.logger.error('生成目录失败', error instanceof Error ? error : new Error(String(error)));
       return [];
-    } finally {
-      // timer.end();
     }
   }
 
@@ -219,7 +237,7 @@ export class TocProvider {
                 data-id="${item.id}"
                 data-level="${item.level}"
                 title="${isExpanded ? '折叠' : '展开'}">
-          <span class="toc-toggle-icon">▶</span>
+          <span class="toc-toggle-icon">▶️</span>
         </button>
       ` : '<span class="toc-toggle-spacer"></span>';
 
