@@ -207,10 +207,11 @@ export class TocProvider {
    * @returns 目录HTML字符串
    */
   public renderToc(toc: TocItem[]): string {
-    if (toc.length === 0) {
+    if (!toc || toc.length === 0) {
       return '<div class="toc-empty">没有找到标题</div>';
     }
     
+    this.logger.debug(`开始渲染目录，共 ${toc.length} 个标题`);
     return this.renderTocItems(toc, 0);
   }
 
@@ -221,14 +222,14 @@ export class TocProvider {
    * @returns HTML字符串
    */
   private renderTocItems(items: TocItem[], level: number): string {
-    if (items.length === 0) {
+    if (!items || items.length === 0) {
       return '';
     }
 
     const config = this.configManager.getTocConfig();
     
     const html = items.map(item => {
-      const hasChildren = item.children.length > 0;
+      const hasChildren = item.children && item.children.length > 0;
       const isExpanded = item.isExpanded;
       
       // 生成折叠按钮
@@ -237,7 +238,7 @@ export class TocProvider {
                 data-id="${item.id}"
                 data-level="${item.level}"
                 title="${isExpanded ? '折叠' : '展开'}">
-          <span class="toc-toggle-icon">▶️</span>
+          <span class="toc-toggle-icon">▶</span>
         </button>
       ` : '<span class="toc-toggle-spacer"></span>';
 

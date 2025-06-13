@@ -346,10 +346,10 @@ export class MarkdownPreviewPanel {
         // 首次加载：设置完整的WebView HTML内容
         const webviewHtml = this.getWebviewContent(html, toc);
         this.panel.webview.html = webviewHtml;
-        this.panel.title = `预览: ${path.basename(this.currentDocument.fileName)}`;
+        this.panel.title = `Markdown Preview: ${path.basename(this.currentDocument.fileName)}`;
       } else {
         // 增量更新：发送内容更新消息到前端
-        this.panel.webview.postMessage({ type: 'update-content', html, toc });
+        this.panel.webview.postMessage({ type: 'update-content', html, toc: this.tocProvider.renderToc(toc) });
       }
       
       this.logger.debug('预览内容已更新');
@@ -390,6 +390,10 @@ export class MarkdownPreviewPanel {
       vscode.Uri.file(path.join(__dirname, '..', '..', 'media', 'preview.css'))
     );
     
+    const tocStyleUri = this.panel!.webview.asWebviewUri(
+      vscode.Uri.file(path.join(__dirname, 'media', 'toc.css'))
+    );
+    
     const githubLightUri = this.panel!.webview.asWebviewUri(
       vscode.Uri.file(path.join(__dirname, '..', '..', 'media', 'github-markdown-light.css'))
     );
@@ -420,6 +424,7 @@ export class MarkdownPreviewPanel {
     <link rel="stylesheet" href="${githubDarkUri}" id="github-dark-theme" disabled>
     <!-- 自定义布局和目录样式 -->
     <link rel="stylesheet" href="${styleUri}">
+    <link rel="stylesheet" href="${tocStyleUri}">
     <script nonce="${nonce}">
         // 传递配置到前端
         window.markdownLiveSyncConfig = ${JSON.stringify(config)};

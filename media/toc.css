@@ -1,0 +1,135 @@
+/* 目录容器 */
+.toc-container {
+  padding: 10px;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--vscode-editor-foreground);
+  background: var(--vscode-editor-background);
+  border-right: 1px solid var(--vscode-panel-border);
+  overflow-y: auto;
+  height: 100%;
+}
+
+/* 空目录提示 */
+.toc-empty {
+  color: var(--vscode-descriptionForeground);
+  font-style: italic;
+  padding: 10px;
+  text-align: center;
+}
+
+/* 目录项 */
+.toc-item {
+  margin: 2px 0;
+  padding: 2px 0;
+  position: relative;
+}
+
+/* 目录项头部 */
+.toc-item-header {
+  display: flex;
+  align-items: center;
+  padding: 2px 4px;
+  border-radius: 3px;
+  cursor: pointer;
+}
+
+.toc-item-header:hover {
+  background: var(--vscode-list-hoverBackground);
+}
+
+/* 目录链接 */
+.toc-link {
+  color: var(--vscode-editor-foreground);
+  text-decoration: none;
+  flex: 1;
+  padding: 2px 4px;
+  border-radius: 3px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.toc-link:hover {
+  color: var(--vscode-textLink-foreground);
+  text-decoration: underline;
+}
+
+/* 折叠按钮 */
+.toc-toggle {
+  background: none;
+  border: none;
+  padding: 2px;
+  margin-right: 4px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--vscode-editor-foreground);
+}
+
+.toc-toggle:hover {
+  background: var(--vscode-list-hoverBackground);
+}
+
+.toc-toggle-icon {
+  font-size: 10px;
+  transition: transform 0.2s;
+}
+
+.toc-toggle.expanded .toc-toggle-icon {
+  transform: rotate(90deg);
+}
+
+.toc-toggle-spacer {
+  width: 16px;
+  display: inline-block;
+}
+
+/* 子目录 */
+.toc-children {
+  margin-left: 16px;
+  border-left: 1px solid var(--vscode-panel-border);
+  padding-left: 4px;
+}
+
+.toc-children.collapsed {
+  display: none;
+}
+
+/* 不同级别的缩进 */
+.toc-item.level-0 { margin-left: 0; }
+.toc-item.level-1 { margin-left: 16px; }
+.toc-item.level-2 { margin-left: 32px; }
+.toc-item.level-3 { margin-left: 48px; }
+.toc-item.level-4 { margin-left: 64px; }
+.toc-item.level-5 { margin-left: 80px; }
+.toc-item.level-6 { margin-left: 96px; }
+
+/* 活动项高亮 */
+.toc-item.active > .toc-item-header {
+  background: var(--vscode-list-activeSelectionBackground);
+  color: var(--vscode-list-activeSelectionForeground);
+}
+
+.toc-item.active > .toc-item-header .toc-link {
+  color: var(--vscode-list-activeSelectionForeground);
+}
+
+/* 滚动条样式 */
+.toc-container::-webkit-scrollbar {
+  width: 8px;
+}
+
+.toc-container::-webkit-scrollbar-track {
+  background: var(--vscode-scrollbarSlider-background);
+}
+
+.toc-container::-webkit-scrollbar-thumb {
+  background: var(--vscode-scrollbarSlider-hoverBackground);
+  border-radius: 4px;
+}
+
+.toc-container::-webkit-scrollbar-thumb:hover {
+  background: var(--vscode-scrollbarSlider-activeBackground);
+} 
