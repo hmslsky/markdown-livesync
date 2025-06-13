@@ -56,6 +56,9 @@
     // 初始化响应式布局
     initializeResponsiveLayout();
     
+    // 初始化代码块增强功能
+    initializeCodeBlocks();
+    
     // 发送就绪消息
     vscode.postMessage({ type: 'ready' });
   }
@@ -67,6 +70,17 @@
     // 从localStorage获取保存的主题，默认为light主题
     const savedTheme = localStorage.getItem('markdown-livesync-theme') || 'light';
     setTheme(savedTheme);
+    
+    // 监听系统主题变化（仅在vscode主题模式下）
+    if (window.matchMedia) {
+      const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+      mediaQuery.addEventListener('change', (e) => {
+        if (currentTheme === 'vscode') {
+          // 重新应用vscode主题以响应系统变化
+          setTheme('vscode');
+        }
+      });
+    }
     
     // 创建主题切换按钮
     createTocHeaderControls();
@@ -183,9 +197,17 @@
     if (theme === 'light') {
       lightTheme.disabled = false;
       darkTheme.disabled = true;
-    } else {
+      document.body.setAttribute('data-theme', 'light');
+    } else if (theme === 'dark') {
       lightTheme.disabled = true;
       darkTheme.disabled = false;
+      document.body.setAttribute('data-theme', 'dark');
+    } else if (theme === 'vscode') {
+      // VSCode主题：根据系统偏好自动选择
+      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+      lightTheme.disabled = prefersDark;
+      darkTheme.disabled = !prefersDark;
+      document.body.setAttribute('data-theme', prefersDark ? 'dark' : 'light');
     }
     
     // 更新按钮文本
@@ -202,6 +224,7 @@
    */
   function getThemeDisplayName(theme) {
     const names = {
+      'vscode': '🖥️ VSCode',
       'light': '🌞 浅色',
       'dark': '🌙 深色'
     };
@@ -1211,7 +1234,161 @@
     
     // 重新初始化
     initializeMermaid();
+    initializeCodeBlocks(); // 重新初始化代码块
     setupIntersectionObserver();
+  }
+
+  /**
+   * 初始化代码块增强功能
+   * 
+   * 为所有代码块添加行号和复制按钮
+   */
+  function initializeCodeBlocks() {
+    console.log('[代码块] 初始化代码块增强功能');
+    
+    // 查找所有代码块
+    const codeBlocks = document.querySelectorAll('pre code');
+    
+    codeBlocks.forEach((codeElement, index) => {
+      const preElement = codeElement.parentElement;
+      if (!preElement || preElement.classList.contains('code-enhanced')) {
+        return; // 已经处理过的跳过
+      }
+      
+      // 标记为已处理
+      preElement.classList.add('code-enhanced');
+      
+      // 创建代码块容器
+      const codeContainer = document.createElement('div');
+      codeContainer.className = 'code-block-container';
+      
+      // 创建头部工具栏
+      const toolbar = document.createElement('div');
+      toolbar.className = 'code-block-toolbar';
+      
+      // 获取语言信息
+      const language = getCodeLanguage(codeElement);
+      if (language) {
+        const langLabel = document.createElement('span');
+        langLabel.className = 'code-language';
+        langLabel.textContent = language;
+        toolbar.appendChild(langLabel);
+      }
+      
+      // 创建复制按钮
+      const copyButton = document.createElement('button');
+      copyButton.className = 'code-copy-button';
+      copyButton.innerHTML = '📋 复制';
+      copyButton.title = '复制代码';
+      copyButton.onclick = () => copyCodeToClipboard(codeElement, copyButton);
+      toolbar.appendChild(copyButton);
+      
+      // 创建带行号的代码容器
+      const codeWrapper = document.createElement('div');
+      codeWrapper.className = 'code-wrapper';
+      
+      // 添加行号
+      addLineNumbers(preElement, codeElement);
+      
+      // 重新组织DOM结构
+      preElement.parentNode.insertBefore(codeContainer, preElement);
+      codeContainer.appendChild(toolbar);
+      codeContainer.appendChild(codeWrapper);
+      codeWrapper.appendChild(preElement);
+    });
+  }
+
+  /**
+   * 获取代码块语言
+   */
+  function getCodeLanguage(codeElement) {
+    const classList = codeElement.classList;
+    for (let className of classList) {
+      if (className.startsWith('language-')) {
+        return className.replace('language-', '');
+      }
+    }
+    return null;
+  }
+
+  /**
+   * 为代码块添加行号
+   */
+  function addLineNumbers(preElement, codeElement) {
+    const code = codeElement.textContent || '';
+    const lines = code.split('\n');
+    
+    // 移除最后一个空行（如果存在）
+    if (lines[lines.length - 1] === '') {
+      lines.pop();
+    }
+    
+    // 创建行号容器
+    const lineNumbers = document.createElement('div');
+    lineNumbers.className = 'line-numbers';
+    
+    // 生成行号
+    for (let i = 1; i <= lines.length; i++) {
+      const lineNumber = document.createElement('span');
+      lineNumber.className = 'line-number';
+      lineNumber.textContent = i.toString();
+      lineNumbers.appendChild(lineNumber);
+    }
+    
+    // 添加行号到代码块
+    preElement.classList.add('has-line-numbers');
+    preElement.insertBefore(lineNumbers, codeElement);
+  }
+
+  /**
+   * 复制代码到剪贴板
+   */
+  async function copyCodeToClipboard(codeElement, button) {
+    const code = codeElement.textContent || '';
+    
+    try {
+      // 使用现代剪贴板API
+      if (navigator.clipboard && window.isSecureContext) {
+        await navigator.clipboard.writeText(code);
+      } else {
+        // 降级方案：使用传统方法
+        const textArea = document.createElement('textarea');
+        textArea.value = code;
+        textArea.style.position = 'fixed';
+        textArea.style.left = '-999999px';
+        textArea.style.top = '-999999px';
+        document.body.appendChild(textArea);
+        textArea.focus();
+        textArea.select();
+        document.execCommand('copy');
+        textArea.remove();
+      }
+      
+      // 显示复制成功反馈
+      const originalText = button.innerHTML;
+      button.innerHTML = '✅ 已复制';
+      button.classList.add('copied');
+      
+      setTimeout(() => {
+        button.innerHTML = originalText;
+        button.classList.remove('copied');
+      }, 2000);
+      
+      console.log('[代码块] 代码已复制到剪贴板');
+      
+    } catch (error) {
+      console.error('[代码块] 复制失败:', error);
+      
+      // 显示复制失败反馈
+      const originalText = button.innerHTML;
+      button.innerHTML = '❌ 复制失败';
+      button.classList.add('copy-failed');
+      
+      setTimeout(() => {
+        button.innerHTML = originalText;
+        button.classList.remove('copy-failed');
+      }, 2000);
+    }
   }
 
   // 当DOM加载完成时初始化
