@@ -16,15 +16,15 @@
   
   // 全局变量
   let config = {};
-  let currentLine = 1;
-  let isScrolling = false;
-  let scrollTimeout = null;
+  let currentLine = 1;              // 当前行号
+  let isScrolling = false;          // 是否正在滚动
+  let scrollTimeout = null;         // 滚动超时定时器
   let currentTheme = 'vscode';      // 默认主题
-  let tocFloating = false;
-  let tocVisible = false;
+  let tocFloating = false;          // 目录是否浮动
+  let tocVisible = false;           // 目录是否可见
   
   // 同步控制变量
-  let lastSyncTime = 0;
+  let lastSyncTime = 0;             // 上次同步时间
   let syncDebounceTimeout = null;  // 同步防抖定时器
   const MIN_SYNC_INTERVAL = 50;    // 最小同步间隔50ms
   const SYNC_DEBOUNCE_DELAY = 30;  // 防抖延迟30ms
@@ -39,7 +39,7 @@
     config = window.markdownLiveSyncConfig || {};
     
     // 初始化主题
-    initializeTheme();
+    initializeThemeAndToc();
     
     // 设置事件监听器
     setupEventListeners();
@@ -65,8 +65,9 @@
 
   /**
    * 初始化主题系统
+   * 包括主题切换、主题目录头部控制按钮、系统主题变化监听等
    */
-  function initializeTheme() {
+  function initializeThemeAndToc() {
     // 从localStorage获取保存的主题，默认为light主题
     const savedTheme = localStorage.getItem('markdown-livesync-theme') || 'light';
     setTheme(savedTheme);
@@ -82,7 +83,7 @@
       });
     }
     
-    // 创建主题切换按钮
+    // 创建目录头部控制按钮
     createTocHeaderControls();
   }
 
@@ -100,19 +101,6 @@
     }
     controls.innerHTML = '';
 
-    // 1. 主题切换按钮
-    const themeBtn = document.createElement('button');
-    themeBtn.className = 'toc-theme-toggle';
-    themeBtn.title = '切换主题 (vscode/light/dark)';
-    themeBtn.innerHTML = getThemeIcon(currentTheme);
-    themeBtn.onclick = function() {
-      const themes = ['vscode', 'light', 'dark'];
-      const idx = themes.indexOf(currentTheme);
-      const next = themes[(idx + 1) % themes.length];
-      setTheme(next);
-      themeBtn.innerHTML = getThemeIcon(next);
-    };
-    controls.appendChild(themeBtn);
 
     // 2. 目录分级按钮（1/2/3级）
     [1,2,3].forEach(level => {
@@ -142,11 +130,26 @@
     };
     controls.appendChild(expandCollapseBtn);
 
+
+    // 1. 主题切换按钮
+    const themeBtn = document.createElement('button');
+    themeBtn.className = 'toc-theme-toggle';
+    themeBtn.title = '切换主题 (vscode/light/dark)';
+    themeBtn.innerHTML = getThemeIcon(currentTheme);
+    themeBtn.onclick = function() {
+      const themes = ['vscode', 'light', 'dark'];
+      const idx = themes.indexOf(currentTheme);
+      const next = themes[(idx + 1) % themes.length];
+      setTheme(next);
+      themeBtn.innerHTML = getThemeIcon(next);
+    };
+    controls.appendChild(themeBtn);
+
     // 4. 关闭按钮
     const closeBtn = document.createElement('button');
     closeBtn.className = 'toc-close-btn';
     closeBtn.title = '关闭目录';
-    closeBtn.innerHTML = '✖';
+    closeBtn.innerHTML = '⚔︎';
     closeBtn.onclick = function() {
       document.querySelector('.toc-container').classList.add('toc-closed');
       showTocFloatingIcon();
@@ -187,6 +190,7 @@
    * 设置主题
    */
   function setTheme(theme) {
+    console.log(`[主题] 开始切换主题到: ${theme}`);
     currentTheme = theme;
     localStorage.setItem('markdown-livesync-theme', theme);
     
@@ -194,29 +198,66 @@
     const lightTheme = document.getElementById('github-light-theme');
     const darkTheme = document.getElementById('github-dark-theme');
     
+    // 检查样式表是否存在
+    if (!lightTheme) {
+      console.error('[主题] 错误: 找不到github-light-theme样式表');
+      return;
+    }
+    if (!darkTheme) {
+      console.error('[主题] 错误: 找不到github-dark-theme样式表');
+      return;
+    }
+    
+    console.log(`[主题] 找到样式表 - Light: ${lightTheme.href}, Dark: ${darkTheme.href}`);
+    
+    // 设置主题相关的CSS变量和样式表
     if (theme === 'light') {
       lightTheme.disabled = false;
       darkTheme.disabled = true;
       document.body.setAttribute('data-theme', 'light');
+      document.body.className = 'vscode-light';
+      console.log('[主题] 应用浅色主题');
     } else if (theme === 'dark') {
       lightTheme.disabled = true;
       darkTheme.disabled = false;
       document.body.setAttribute('data-theme', 'dark');
+      document.body.className = 'vscode-dark';
+      console.log('[主题] 应用深色主题');
     } else if (theme === 'vscode') {
       // VSCode主题：根据系统偏好自动选择
       const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
       lightTheme.disabled = prefersDark;
       darkTheme.disabled = !prefersDark;
       document.body.setAttribute('data-theme', prefersDark ? 'dark' : 'light');
+      document.body.className = prefersDark ? 'vscode-dark' : 'vscode-light';
+      console.log(`[主题] 应用VSCode主题 - 系统偏好: ${prefersDark ? '深色' : '浅色'}`);
     }
     
-    // 更新按钮文本
+    // 强制重新渲染样式
+    const tocContainer = document.querySelector('.toc-container');
+    if (tocContainer) {
+      tocContainer.style.display = 'none';
+      tocContainer.offsetHeight; // 触发重排
+      tocContainer.style.display = '';
+    }
+    
+    // 更新按钮图标
+    const themeBtn = document.querySelector('.toc-theme-toggle');
+    if (themeBtn) {
+      themeBtn.innerHTML = getThemeIcon(theme);
+      console.log(`[主题] 更新按钮图标: ${getThemeIcon(theme)}`);
+    }
+    
+    // 更新按钮文本（如果存在旧的theme-toggle按钮）
     const themeToggle = document.querySelector('.theme-toggle');
     if (themeToggle) {
       themeToggle.textContent = getThemeDisplayName(theme);
     }
     
-    console.log(`[主题] 切换到${getThemeDisplayName(theme)}主题`);
+    console.log(`[主题] 主题切换完成: ${getThemeDisplayName(theme)}`);
+    console.log(`[主题] 当前样式表状态 - Light disabled: ${lightTheme.disabled}, Dark disabled: ${darkTheme.disabled}`);
+    console.log(`[主题] 当前body data-theme: ${document.body.getAttribute('data-theme')}`);
+    console.log(`[主题] 当前body className: ${document.body.className}`);
   }
 
   /**
@@ -677,22 +718,82 @@
   }
 
   /**
-   * 滚动到指定行
+   * 滚动到指定行号对应的内容
    */
   function scrollToLine(line) {
-    const indicator = document.getElementById(`indicator-${line}`);
-    if (indicator) {
-      const rect = indicator.getBoundingClientRect();
-      const scrollTop = window.pageYOffset + rect.top - window.innerHeight / 2;
-      
-      window.scrollTo({
-        top: Math.max(0, scrollTop),
-        behavior: 'smooth'
+    // 首先尝试通过data-source-line属性查找对应的元素
+    const targetElement = document.querySelector(`[data-source-line="${line}"]`);
+    
+    if (targetElement) {
+      // 滚动到目标元素位置
+      targetElement.scrollIntoView({
+        behavior: 'smooth',
+        block: 'start'
       });
       
-      // 高亮效果
-      if (config.preview?.highlightOnScroll) {
-        highlightLine(line);
+      // 添加临时高亮效果
+      targetElement.classList.add('highlight-target');
+      setTimeout(() => {
+        targetElement.classList.remove('highlight-target');
+      }, 2000);
+      
+      console.log(`[目录] 滚动到第${line}行元素: ${targetElement.tagName}`);
+      return;
+    }
+    
+    // 如果没找到精确匹配，尝试查找标题元素
+    const headings = document.querySelectorAll('h1, h2, h3, h4, h5, h6');
+    let targetHeading = null;
+    let bestMatch = null;
+    let minDistance = Infinity;
+    
+    // 遍历所有标题，找到最接近的标题
+    for (let i = 0; i < headings.length; i++) {
+      const heading = headings[i];
+      const headingLine = parseInt(heading.getAttribute('data-source-line'));
+      
+      if (headingLine) {
+        const distance = Math.abs(headingLine - line);
+        if (distance < minDistance) {
+          minDistance = distance;
+          bestMatch = heading;
+        }
+        
+        // 如果找到精确匹配，直接使用
+        if (headingLine === line) {
+          targetHeading = heading;
+          break;
+        }
+      }
+    }
+    
+    // 使用最佳匹配或精确匹配
+    const finalTarget = targetHeading || bestMatch;
+    
+    if (finalTarget) {
+      // 滚动到标题位置
+      finalTarget.scrollIntoView({
+        behavior: 'smooth',
+        block: 'start'
+      });
+      
+      // 添加临时高亮效果
+      finalTarget.classList.add('highlight-target');
+      setTimeout(() => {
+        finalTarget.classList.remove('highlight-target');
+      }, 2000);
+      
+      const targetLine = finalTarget.getAttribute('data-source-line');
+      console.log(`[目录] 滚动到标题: ${finalTarget.textContent} (第${targetLine}行)`);
+    } else {
+      // 如果都没找到，尝试通过锚点滚动
+      const tocLink = document.querySelector(`[data-line="${line}"]`);
+      if (tocLink && tocLink.href && tocLink.href.includes('#')) {
+        const anchor = tocLink.href.split('#')[1];
+        scrollToAnchor(anchor);
+        console.log(`[目录] 通过锚点滚动: ${anchor}`);
+      } else {
+        console.warn(`[目录] 无法找到第${line}行对应的元素`);
       }
     }
   }
@@ -974,9 +1075,11 @@
     }
     
     // 清除现有的分级控制按钮
-    const existingLevelButtons = controlsContainer.querySelectorAll('.toc-level-control');
-    existingLevelButtons.forEach(btn => btn.remove());
-    
+    // const existingLevelButtons = controlsContainer.querySelectorAll('.toc-level-control');
+    // existingLevelButtons.forEach(btn => btn.remove());
+    let existingLevelButtonsDiv = controlsContainer.querySelectorAll('.toc-level-controls');
+    existingLevelButtonsDiv.remove()
+
     // 创建分级展开按钮
     if (availableLevels.length > 1) {
       const levelControlsContainer = document.createElement('div');
@@ -984,7 +1087,7 @@
       levelControlsContainer.style.cssText = `
         display: flex;
         gap: 2px;
-        margin-left: 8px;
+        margin-left: 2px;
       `;
       
       availableLevels.forEach(level => {
@@ -999,8 +1102,8 @@
           color: var(--button-foreground);
           cursor: pointer;
           padding: 2px 6px;
-          border-radius: 3px;
-          font-size: 10px;
+          border-radius: 2px;
+          font-size: 12px;
           min-width: 20px;
           transition: all 0.2s ease;
         `;
@@ -1099,9 +1202,15 @@
    */
   function handleTocClick(line) {
     console.log(`[目录] 点击目录项: 第${line}行`);
+    
+    // 首先在预览面板中滚动到对应位置
+    scrollToLine(line);
+    
+    // 然后静默同步编辑器（不抢夺焦点）
     vscode.postMessage({ 
       type: 'toc-click', 
-      line: line - 1 // 转换为0基索引
+      line: line - 1, // 转换为0基索引
+      silent: true // 添加静默标志
     });
     
     // 如果是浮动目录，点击后隐藏

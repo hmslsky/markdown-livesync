@@ -278,7 +278,6 @@ export class MarkdownPreviewPanel {
       case 'toc-click':
         // 处理目录点击事件，实现目录导航
         this.logger.debug(`[Webview] 处理目录点击: 第${message.line + 1}行`);
-        await this.syncEditorToLine(message.line);
         await this.handleTocClick(message);
         break;
         
@@ -391,7 +390,7 @@ export class MarkdownPreviewPanel {
     );
     
     const tocStyleUri = this.panel!.webview.asWebviewUri(
-      vscode.Uri.file(path.join(__dirname, 'media', 'toc.css'))
+      vscode.Uri.file(path.join(__dirname, '..', '..', 'media', 'toc.css'))
     );
     
     const githubLightUri = this.panel!.webview.asWebviewUri(
@@ -417,9 +416,7 @@ export class MarkdownPreviewPanel {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${this.panel!.webview.cspSource} 'unsafe-inline'; script-src 'nonce-${nonce}'; img-src ${this.panel!.webview.cspSource} https: data:;">
     <title>Markdown预览</title>
-    <!-- GitHub官方Markdown样式 -->
-    <link rel="stylesheet" href="${githubLightUri}" media="(prefers-color-scheme: light)">
-    <link rel="stylesheet" href="${githubDarkUri}" media="(prefers-color-scheme: dark)">
+    <!-- GitHub官方Markdown样式 - 通过JavaScript控制 -->
     <link rel="stylesheet" href="${githubLightUri}" id="github-light-theme">
     <link rel="stylesheet" href="${githubDarkUri}" id="github-dark-theme" disabled>
     <!-- 自定义布局和目录样式 -->
@@ -594,12 +591,13 @@ export class MarkdownPreviewPanel {
    * 实现目录导航功能，点击目录项跳转到对应的编辑器位置
    * 
    * 跳转策略：
-   * 1. 查找当前文档的可见编辑器
-   * 2. 优先在现有编辑器中设置光标
-   * 3. 如无可见编辑器则创建新的编辑器
-   * 4. 使用preserveFocus避免抢夺焦点
+   * 1. 如果是静默模式，只同步编辑器位置，不抢夺焦点
+   * 2. 查找当前文档的可见编辑器
+   * 3. 优先在现有编辑器中设置光标
+   * 4. 如无可见编辑器则创建新的编辑器
+   * 5. 使用preserveFocus避免抢夺焦点
    * 
-   * @param message 目录点击消息，包含目标行号
+   * @param message 目录点击消息，包含目标行号和静默标志
    */
   private async handleTocClick(message: any): Promise<void> {
     if (!this.currentDocument) return;
@@ -607,8 +605,9 @@ export class MarkdownPreviewPanel {
     try {
       const position = new vscode.Position(message.line, 0);
       const selection = new vscode.Selection(position, position);
+      const isSilent = message.silent === true;
       
-      // 查找当前文档的编辑器，避免窗口聚焦
+      // 查找当前文档的编辑器
       const editors = vscode.window.visibleTextEditors;
       const targetEditor = editors.find(editor => 
         editor.document.uri.toString() === this.currentDocument!.uri.toString()
@@ -617,15 +616,29 @@ export class MarkdownPreviewPanel {
       if (targetEditor) {
         // 直接在现有编辑器中设置光标位置
         targetEditor.selection = selection;
-        targetEditor.revealRange(selection, vscode.TextEditorRevealType.InCenter);
+        
+        if (isSilent) {
+          // 静默模式：只滚动到位置，不抢夺焦点
+          targetEditor.revealRange(selection, vscode.TextEditorRevealType.InCenter);
+          this.logger.debug(`静默同步编辑器到第 ${message.line + 1} 行`);
+        } else {
+          // 普通模式：滚动并可能抢夺焦点
+          targetEditor.revealRange(selection, vscode.TextEditorRevealType.InCenter);
+          this.logger.debug(`跳转到编辑器第 ${message.line + 1} 行`);
+        }
       } else {
         // 使用preserveFocus选项避免聚焦
         const editor = await vscode.window.showTextDocument(
           this.currentDocument,
-          { preserveFocus: true }
+          { 
+            preserveFocus: isSilent, // 静默模式下保持焦点
+            preview: false
+          }
         );
         editor.selection = selection;
         editor.revealRange(selection, vscode.TextEditorRevealType.InCenter);
+        
+        this.logger.debug(`${isSilent ? '静默' : ''}打开编辑器并跳转到第 ${message.line + 1} 行`);
       }
     } catch (error) {
       this.logger.error('处理目录点击事件失败' + (error instanceof Error ? (' ' + error.message) : ''));
