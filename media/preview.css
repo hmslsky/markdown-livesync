@@ -21,24 +21,7 @@ html, body {
 
 /* 主题切换按钮 */
 .theme-toggle {
-  position: fixed;
-  top: 10px;
-  right: 10px;
-  background: #f6f8fa;
-  border: 1px solid #d1d9e0;
-  color: #1f2328;
-  padding: 8px 12px;
-  border-radius: 6px;
-  cursor: pointer;
-  font-size: 12px;
-  z-index: 1001;
-  transition: all 0.2s ease;
-  box-shadow: 0 1px 3px rgba(31, 35, 40, 0.12);
-}
-
-.theme-toggle:hover {
-  background: #e1e4e8;
-  transform: translateY(-1px);
+  display: none !important;
 }
 
 /* 深色主题下的主题切换按钮 */
@@ -171,6 +154,9 @@ html, body {
 
 /* 目录头部 */
 .toc-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   padding: 16px;
   border-bottom: 1px solid #d1d9e0;
   background-color: #ffffff;
@@ -187,7 +173,7 @@ html, body {
 }
 
 .toc-header h3 {
-  margin: 0 0 12px 0;
+  margin: 0 12px 0 0;
   font-size: 16px;
   font-weight: 600;
   color: #1f2328;
@@ -201,9 +187,8 @@ html, body {
 
 .toc-controls {
   display: flex;
-  gap: 8px;
   align-items: center;
-  flex-wrap: wrap;
+  gap: 4px;
 }
 
 .toc-level-controls {
@@ -758,5 +743,75 @@ html, body {
     opacity: 1;
     transform: translateY(0);
   }
+}
+
+/* 主题切换按钮（目录内） */
+.toc-theme-toggle {
+  background: #f3f4f6;
+  border: 1px solid #d1d9e0;
+  color: #1f2328;
+  padding: 6px 8px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 16px;
+  margin-right: 4px;
+  transition: all 0.2s ease;
+}
+.toc-theme-toggle:hover {
+  background: #e1e4e8;
+}
+
+.toc-expand-collapse {
+  background: #f3f4f6;
+  border: 1px solid #d1d9e0;
+  color: #1f2328;
+  padding: 6px 8px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 16px;
+  margin-left: 4px;
+  transition: all 0.2s ease;
+}
+.toc-expand-collapse:hover {
+  background: #e1e4e8;
+}
+
+.toc-close-btn {
+  background: transparent;
+  border: none;
+  color: #888;
+  font-size: 18px;
+  margin-left: 8px;
+  cursor: pointer;
+  transition: color 0.2s;
+}
+.toc-close-btn:hover {
+  color: #e02424;
+}
+
+.toc-floating-icon {
+  position: fixed;
+  top: 18px;
+  left: 18px;
+  width: 38px;
+  height: 38px;
+  background: #f6f8fa;
+  border: 1px solid #d1d9e0;
+  border-radius: 50%;
+  box-shadow: 0 2px 8px rgba(31,35,40,0.10);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+  z-index: 2000;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.toc-floating-icon:hover {
+  background: #e1e4e8;
+}
+
+.toc-container.toc-closed {
+  display: none !important;
 }
 

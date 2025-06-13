@@ -19,15 +19,15 @@
   let currentLine = 1;
   let isScrolling = false;
   let scrollTimeout = null;
-  let currentTheme = 'light'; // 默认主题
+  let currentTheme = 'vscode';      // 默认主题
   let tocFloating = false;
   let tocVisible = false;
   
   // 同步控制变量
   let lastSyncTime = 0;
-  let syncDebounceTimeout = null;
-  const MIN_SYNC_INTERVAL = 50; // 最小同步间隔50ms
-  const SYNC_DEBOUNCE_DELAY = 30; // 防抖延迟30ms
+  let syncDebounceTimeout = null;  // 同步防抖定时器
+  const MIN_SYNC_INTERVAL = 50;    // 最小同步间隔50ms
+  const SYNC_DEBOUNCE_DELAY = 30;  // 防抖延迟30ms
 
   /**
    * 初始化函数
@@ -69,26 +69,104 @@
     setTheme(savedTheme);
     
     // 创建主题切换按钮
-    createThemeToggleButton();
+    createTocHeaderControls();
   }
 
   /**
-   * 创建主题切换按钮
+   * 创建目录头部控制按钮
    */
-  function createThemeToggleButton() {
-    const themeToggle = document.createElement('button');
-    themeToggle.className = 'theme-toggle';
-    themeToggle.textContent = getThemeDisplayName(currentTheme);
-    themeToggle.title = '切换主题 (Ctrl+Shift+T)';
-    
-    themeToggle.addEventListener('click', () => {
-      const themes = ['light', 'dark'];
-      const currentIndex = themes.indexOf(currentTheme);
-      const nextTheme = themes[(currentIndex + 1) % themes.length];
-      setTheme(nextTheme);
+  function createTocHeaderControls() {
+    const tocHeader = document.querySelector('.toc-header');
+    if (!tocHeader) return;
+    let controls = tocHeader.querySelector('.toc-controls');
+    if (!controls) {
+      controls = document.createElement('div');
+      controls.className = 'toc-controls';
+      tocHeader.appendChild(controls);
+    }
+    controls.innerHTML = '';
+
+    // 1. 主题切换按钮
+    const themeBtn = document.createElement('button');
+    themeBtn.className = 'toc-theme-toggle';
+    themeBtn.title = '切换主题 (vscode/light/dark)';
+    themeBtn.innerHTML = getThemeIcon(currentTheme);
+    themeBtn.onclick = function() {
+      const themes = ['vscode', 'light', 'dark'];
+      const idx = themes.indexOf(currentTheme);
+      const next = themes[(idx + 1) % themes.length];
+      setTheme(next);
+      themeBtn.innerHTML = getThemeIcon(next);
+    };
+    controls.appendChild(themeBtn);
+
+    // 2. 目录分级按钮（1/2/3级）
+    [1,2,3].forEach(level => {
+      const btn = document.createElement('button');
+      btn.className = 'toc-level-control';
+      btn.textContent = level;
+      btn.title = `展开到${level}级标题`;
+      btn.onclick = () => expandToLevel(level);
+      controls.appendChild(btn);
     });
-    
-    document.body.appendChild(themeToggle);
+
+    // 3. 全部展开/收起按钮
+    const expandCollapseBtn = document.createElement('button');
+    expandCollapseBtn.className = 'toc-expand-collapse';
+    expandCollapseBtn.title = '全部展开/收起';
+    let expanded = true;
+    expandCollapseBtn.innerHTML = expanded ? '📂' : '📁';
+    expandCollapseBtn.onclick = function() {
+      expanded = !expanded;
+      if (expanded) {
+        expandAllTocItems();
+        expandCollapseBtn.innerHTML = '📂';
+      } else {
+        collapseAllTocItems();
+        expandCollapseBtn.innerHTML = '📁';
+      }
+    };
+    controls.appendChild(expandCollapseBtn);
+
+    // 4. 关闭按钮
+    const closeBtn = document.createElement('button');
+    closeBtn.className = 'toc-close-btn';
+    closeBtn.title = '关闭目录';
+    closeBtn.innerHTML = '✖';
+    closeBtn.onclick = function() {
+      document.querySelector('.toc-container').classList.add('toc-closed');
+      showTocFloatingIcon();
+    };
+    controls.appendChild(closeBtn);
+  }
+
+  /**
+   * 获取主题图标
+   */
+  function getThemeIcon(theme) {
+    if (theme === 'vscode') return '🖥️';
+    if (theme === 'light') return '🌞';
+    if (theme === 'dark') return '🌙';
+    return '🎨';
+  }
+
+  /**
+   * 显示目录悬浮图标
+   */
+  function showTocFloatingIcon() {
+    let icon = document.querySelector('.toc-floating-icon');
+    if (!icon) {
+      icon = document.createElement('div');
+      icon.className = 'toc-floating-icon';
+      icon.title = '展开目录';
+      icon.innerHTML = '📋';
+      icon.onclick = function() {
+        document.querySelector('.toc-container').classList.remove('toc-closed');
+        icon.style.display = 'none';
+      };
+      document.body.appendChild(icon);
+    }
+    icon.style.display = 'block';
   }
 
   /**
@@ -698,6 +776,9 @@
     
     // 初始化智能展开控制
     initializeSmartTocControls();
+    
+    // 创建目录头部控制按钮
+    createTocHeaderControls();
   }
 
   /**

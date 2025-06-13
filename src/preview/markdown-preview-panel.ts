@@ -482,13 +482,13 @@ export class MarkdownPreviewPanel {
     
     return `
       <div class="toc-header">
-        <h3>目录</h3>
+        <h3>TOC</h3>
         <div class="toc-controls">
           <button class="toc-toggle-visibility" title="隐藏/显示目录">
             <span class="toc-visibility-icon">👁️</span>
           </button>
-          <button class="toc-collapse-all" title="折叠所有">📁</button>
-          <button class="toc-expand-all" title="展开所有">📂</button>
+          <button class="toc-collapse-all" title="折叠所有">-</button>
+          <button class="toc-expand-all" title="展开所有">+</button>
         </div>
       </div>
       <div class="toc-content">
