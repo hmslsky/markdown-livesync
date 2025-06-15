@@ -124,14 +124,9 @@
           "properties": {
             "current": {
               "type": "string",
-              "enum": ["vscode", "light", "dark"],
-              "default": "vscode",
-              "description": "当前使用的主题"
-            },
-            "followVSCode": {
-              "type": "boolean",
-              "default": true,
-              "description": "是否跟随VSCode主题变化"
+              "enum": ["light", "dark"],
+              "default": "light",
+              "description": "当前使用的主题：浅色或深色"
             },
             "custom": {
               "type": "object",

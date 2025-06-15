@@ -362,27 +362,19 @@ export class MarkdownPreviewPanel {
     const config = this.configManager.getConfig();
     const nonce = this.generateNonce();
     
-    // 获取当前主题设置
-    const currentTheme = config.theme?.current || 'vscode';
+    // 获取当前主题设置，默认为浅色主题
+    const currentTheme = config.theme?.current || 'light';
     
-    // 检测VSCode当前主题类型
-    let prefersDark = false;
-    if (currentTheme === 'vscode') {
-      // 使用VSCode的主题API检测当前主题
-      const currentVSCodeTheme = vscode.window.activeColorTheme;
-      prefersDark = currentVSCodeTheme.kind === vscode.ColorThemeKind.Dark || 
-                   currentVSCodeTheme.kind === vscode.ColorThemeKind.HighContrast;
-    } else {
-      prefersDark = currentTheme === 'dark';
-    }
+    // 简化的主题逻辑：只有浅色和深色两种
+    const prefersDark = currentTheme === 'dark';
     
     // 根据主题设置初始样式表状态
-    const lightDisabled = currentTheme === 'dark' || (currentTheme === 'vscode' && prefersDark);
-    const darkDisabled = currentTheme === 'light' || (currentTheme === 'vscode' && !prefersDark);
+    const lightDisabled = currentTheme === 'dark';
+    const darkDisabled = currentTheme === 'light';
     
     // 确定初始主题状态
-    const initialTheme = currentTheme === 'vscode' ? (prefersDark ? 'dark' : 'light') : currentTheme;
-    const initialBodyClass = currentTheme === 'vscode' ? (prefersDark ? 'vscode-dark' : 'vscode-light') : `vscode-${currentTheme}`;
+    const initialTheme = currentTheme;
+    const initialBodyClass = `vscode-${currentTheme}`;
 
     // 获取资源URI（确保安全访问）
     const styleUri = this.panel!.webview.asWebviewUri(

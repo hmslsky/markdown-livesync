@@ -68,6 +68,7 @@ html, body {
   flex: 1;
   overflow-y: auto;
   padding: 20px;
+  background: var(--vscode-editor-background);
   /* 移除固定背景色，让GitHub主题样式生效 */
 }
 
@@ -204,7 +205,7 @@ html, body {
 .code-block-container {
   margin: 16px 0;
   border: 1px solid var(--vscode-panel-border);
-  border-radius: 8px;
+  border-radius: 4px;
   overflow: hidden;
   background: var(--vscode-list-hoverBackground);
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.04);
@@ -214,10 +215,11 @@ html, body {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 8px 12px;
+  padding: 1px 8px;
   background: var(--vscode-list-hoverBackground);
   border-bottom: 1px solid var(--vscode-panel-border);
   font-size: 12px;
+  height: 24px;
 }
 
 .code-language {
@@ -228,13 +230,10 @@ html, body {
 }
 
 .code-copy-button {
-  background: var(--vscode-list-hoverBackground);
-  border: 1px solid var(--vscode-panel-border);
-  color: var(--vscode-editor-foreground);
-  padding: 4px 8px;
-  border-radius: 4px;
   cursor: pointer;
-  font-size: 11px;
+  font-size: 14px;
+  border: none;
+  background: none;
   font-weight: 500;
   transition: all 0.2s ease;
   display: flex;
@@ -250,9 +249,9 @@ html, body {
 }
 
 .code-copy-button.copied {
-  background: #28a745;
+  background: none;
   color: white;
-  border-color: #28a745;
+  border-color: none;
 }
 
 .code-copy-button.copy-failed {
@@ -270,6 +269,7 @@ html, body {
 .code-enhanced {
   margin: 0 !important;
   border-radius: 0 !important;
+  padding: 0 !important;
   position: relative;
   overflow-x: auto;
   /* 移除背景色设置，让GitHub样式生效 */
@@ -287,20 +287,21 @@ html, body {
   font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
   font-size: 12px;
   line-height: 1.45;
-  padding: 16px 8px;
+  padding: 5px 4px;
   text-align: right;
   user-select: none;
-  min-width: 40px;
+  min-width: 28px;
   flex-shrink: 0;
 }
 
 .line-number {
   display: block;
-  line-height: 1.45;
+  line-height: 21px;
 }
 
 .has-line-numbers code {
-  padding: 16px !important;
+  padding: 5px !important;
+  line-height: 21px !important;
   flex: 1;
   display: block;
   overflow-x: auto;
@@ -311,6 +312,7 @@ html, body {
   background: transparent !important;
   border: none !important;
   border-radius: 0 !important;
+  color: var(--vscode-editor-foreground) !important;
 }
 
 /* 滚动条样式优化 */

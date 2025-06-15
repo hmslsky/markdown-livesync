@@ -19,7 +19,6 @@
   let currentLine = 1;              // 当前行号
   let isScrolling = false;          // 是否正在滚动
   let scrollTimeout = null;         // 滚动超时定时器
-  let currentTheme = 'vscode';      // 默认主题
   let tocFloating = false;          // 目录是否浮动
   let tocVisible = false;           // 目录是否可见
   
@@ -29,60 +28,68 @@
   const MIN_SYNC_INTERVAL = 50;    // 最小同步间隔50ms
   const SYNC_DEBOUNCE_DELAY = 30;  // 防抖延迟30ms
 
+  // ==================== 主题系统核心变量 ====================
+  
   /**
-   * 初始化函数
+   * 当前激活的主题名称
+   * 可选值：'vscode' | 'light' | 'dark'
+   * - 'vscode': 跟随VSCode编辑器主题（自动检测系统偏好）
+   * - 'light': 强制使用浅色主题
+   * - 'dark': 强制使用深色主题
    */
-  function initialize() {
-    console.log('Markdown LiveSync 预览脚本初始化');
-    
-    // 获取配置
-    config = window.markdownLiveSyncConfig || {};
-    
-    // 初始化主题
-    initializeThemeAndToc();
-    
-    // 设置事件监听器
-    setupEventListeners();
-    
-    // 初始化Mermaid
-    initializeMermaid();
-    
-    // 初始化目录
-    initializeToc();
-    
-    // 设置IntersectionObserver
-    setupIntersectionObserver();
-    
-    // 初始化响应式布局
-    initializeResponsiveLayout();
-    
-    // 初始化代码块增强功能
-    initializeCodeBlocks();
-    
-    // 发送就绪消息
-    vscode.postMessage({ type: 'ready' });
-  }
+  let currentTheme = 'vscode';
+
+  // ==================== 主题系统初始化 ====================
 
   /**
-   * 初始化主题系统
-   * 包括主题切换、主题目录头部控制按钮、系统主题变化监听等
+   * 初始化主题系统和目录控件
+   * 
+   * 主题系统初始化流程：
+   * 1. 等待DOM和CSS样式表完全加载
+   * 2. 确定初始主题（优先级：配置 > localStorage > 默认值）
+   * 3. 应用初始主题设置
+   * 4. 设置系统主题变化监听器
+   * 5. 创建目录头部控制按钮
+   * 
+   * 样式表加载策略：
+   * - 使用Promise.all确保所有样式表都已加载
+   * - 添加超时保护机制，避免无限等待
+   * - 通过stylesheet.sheet属性检测加载状态
    */
   function initializeThemeAndToc() {
     console.log('[主题] 开始初始化主题系统');
     
-    // 等待DOM和样式表完全加载
+    /**
+     * 等待GitHub样式表加载完成
+     * 
+     * 加载检测机制：
+     * 1. 首先检查DOM中是否存在样式表元素
+     * 2. 然后检查stylesheet.sheet属性是否不为null
+     * 3. 如果未加载完成，添加load事件监听器
+     * 4. 设置2秒超时保护，避免无限等待
+     * 
+     * @returns Promise<void> 样式表加载完成的Promise
+     */
     const waitForStylesheets = () => {
       return new Promise((resolve) => {
+        // 获取GitHub官方样式表元素引用
         const lightTheme = document.getElementById('github-light-theme');
         const darkTheme = document.getElementById('github-dark-theme');
         
+        // 如果样式表元素不存在，继续等待DOM加载
         if (!lightTheme || !darkTheme) {
           console.log('[主题] 样式表尚未加载，等待中...');
           setTimeout(() => waitForStylesheets().then(resolve), 50);
           return;
         }
         
-        // 检查样式表是否已加载
+        /**
+         * 检查样式表是否已完全加载
+         * 
+         * 检测方法：
+         * - stylesheet.sheet !== null 表示样式表已加载并可访问
+         * - 如果为null，说明样式表仍在加载中
+         */
         const checkLoaded = () => {
           const lightLoaded = lightTheme.sheet !== null;
           const darkLoaded = darkTheme.sheet !== null;
@@ -90,16 +97,17 @@
           console.log(`[主题] 样式表加载状态 - Light: ${lightLoaded}, Dark: ${darkLoaded}`);
           
           if (lightLoaded && darkLoaded) {
+            // 所有样式表都已加载完成
             resolve();
           } else {
-            // 添加加载事件监听器
+            // 为未加载的样式表添加load事件监听器
             if (!lightLoaded) {
               lightTheme.addEventListener('load', checkLoaded, { once: true });
             }
             if (!darkLoaded) {
               darkTheme.addEventListener('load', checkLoaded, { once: true });
             }
-            // 添加超时保护
+            // 添加超时保护，避免无限等待
             setTimeout(resolve, 2000);
           }
         };
@@ -107,17 +115,27 @@
         checkLoaded();
       });
     };
-    
+
+    // 等待样式表加载完成后开始主题初始化
     waitForStylesheets().then(() => {
       console.log('[主题] 样式表加载完成，开始初始化主题');
       
-      // 优先使用配置中的主题设置，然后是localStorage，最后是默认值
+      /**
+       * 确定初始主题设置
+       * 
+       * 优先级顺序：
+       * 1. 插件配置中的主题设置（config.theme.current）
+       * 2. localStorage中保存的用户偏好
+       * 3. 默认值：'vscode'（跟随VSCode主题）
+       */
       let initialTheme = 'vscode'; // 默认使用vscode主题
       
       if (config && config.theme && config.theme.current) {
+        // 优先使用插件配置中的主题设置
         initialTheme = config.theme.current;
         console.log(`[主题] 使用配置中的主题: ${initialTheme}`);
       } else {
+        // 其次使用localStorage中保存的用户偏好
         const savedTheme = localStorage.getItem('markdown-livesync-theme');
         if (savedTheme) {
           initialTheme = savedTheme;
@@ -127,22 +145,14 @@
         }
       }
       
+      // 应用初始主题设置
       setTheme(initialTheme);
       
-      // 监听系统主题变化（仅在vscode主题模式下）
-      if (window.matchMedia) {
-        const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
-        mediaQuery.addEventListener('change', (e) => {
-          if (currentTheme === 'vscode') {
-            console.log(`[主题] 系统主题变化: ${e.matches ? '深色' : '浅色'}`);
-            setTheme('vscode'); // 重新应用vscode主题以响应系统变化
-          }
-        });
-      }
+      // 简化的主题系统不需要监听系统主题变化
       
       console.log('[主题] 主题系统初始化完成');
       
-      // 创建目录头部控制按钮
+      // 创建目录头部控制按钮（包含主题切换按钮）
       createTocHeaderControls();
     });
   }
@@ -271,7 +281,7 @@
     // 2.3 主题切换按钮
     const themeBtn = document.createElement('button');
     themeBtn.className = 'toc-theme-toggle';
-    themeBtn.title = '切换主题 (vscode/light/dark)';
+    themeBtn.title = '切换主题 (浅色/深色)';
     themeBtn.innerHTML = getThemeIcon(currentTheme);
     themeBtn.style.cssText = `
       background: transparent;
@@ -283,7 +293,7 @@
       color: var(--vscode-foreground);
     `;
     themeBtn.onclick = function() {
-      const themes = ['vscode', 'light', 'dark'];
+      const themes = ['light', 'dark'];
       const idx = themes.indexOf(currentTheme);
       const next = themes[(idx + 1) % themes.length];
       setTheme(next);
@@ -336,10 +346,9 @@
    * 获取主题图标
    */
   function getThemeIcon(theme) {
-    if (theme === 'vscode') return '🖥️';
     if (theme === 'light') return '🌞';
     if (theme === 'dark') return '🌙';
-    return '🎨';
+    return '🌞'; // 默认浅色主题图标
   }
 
   /**
@@ -364,24 +373,76 @@
   /**
    * 设置主题
    */
+  // ==================== 主题切换核心函数 ====================
+
+  /**
+   * 设置主题
+   * 
+   * 主题切换完整流程：
+   * 1. 验证DOM元素存在性
+   * 2. 更新全局主题状态和持久化存储
+   * 3. 获取并验证样式表元素
+   * 4. 等待样式表加载完成
+   * 5. 根据主题类型启用/禁用对应样式表
+   * 6. 设置DOM元素的主题属性和CSS类
+   * 7. 强制重新渲染关键元素
+   * 8. 更新UI控件状态
+   * 9. 验证样式应用效果
+   * 
+   * 支持的主题类型：
+   * - 'vscode': 跟随VSCode编辑器主题，自动检测系统偏好
+   * - 'light': 强制使用浅色主题（GitHub Light）
+   * - 'dark': 强制使用深色主题（GitHub Dark）
+   * 
+   * @param {string} theme 目标主题名称
+   */
   function setTheme(theme) {
     console.log(`[主题] 开始切换主题到: ${theme}`);
     
-    // 调试：检查关键DOM元素是否存在
+    /**
+     * DOM元素存在性检查
+     * 
+     * 在主题切换前验证关键DOM元素是否已加载：
+     * - .markdown-body: Markdown内容容器
+     * - .content-container: 内容区域容器
+     * - .toc-container: 目录容器
+     * - .container: 主容器
+     */
     const elementsToCheck = ['.markdown-body', '.content-container', '.toc-container', '.container'];
     elementsToCheck.forEach(selector => {
       const element = document.querySelector(selector);
       console.log(`[主题] DOM检查 - ${selector}: ${element ? '存在' : '不存在'}`);
     });
     
+    /**
+     * 更新全局主题状态和持久化存储
+     * 
+     * 状态管理：
+     * - currentTheme: 全局变量，记录当前激活的主题
+     * - localStorage: 持久化存储用户的主题偏好
+     */
     currentTheme = theme;
     localStorage.setItem('markdown-livesync-theme', theme);
     
-    // 等待样式表加载完成
+    /**
+     * 获取GitHub官方样式表元素引用
+     * 
+     * 样式表架构：
+     * - github-light-theme: GitHub官方浅色主题样式
+     * - github-dark-theme: GitHub官方深色主题样式
+     * 
+     * 这两个样式表在HTML中预加载，通过disabled属性控制启用状态
+     */
     const lightTheme = document.getElementById('github-light-theme');
     const darkTheme = document.getElementById('github-dark-theme');
     
-    // 检查样式表是否存在
+    /**
+     * 样式表存在性验证
+     * 
+     * 错误处理策略：
+     * - 如果样式表不存在，延迟100ms后重试
+     * - 避免在样式表未加载时进行主题切换
+     */
     if (!lightTheme) {
       console.error('[主题] 错误: 找不到github-light-theme样式表');
       // 尝试重新查找或创建
@@ -398,12 +459,24 @@
     console.log(`[主题] 找到样式表 - Light: ${lightTheme.href}, Dark: ${darkTheme.href}`);
     console.log(`[主题] 当前样式表状态 - Light disabled: ${lightTheme.disabled}, Dark disabled: ${darkTheme.disabled}`);
     
-    // 确保样式表已加载
+    /**
+     * 确保样式表已完全加载
+     * 
+     * 加载检测机制：
+     * - 检查stylesheet.sheet属性是否存在
+     * - 如果未加载，添加load事件监听器
+     * - 设置1秒超时保护，避免无限等待
+     * 
+     * @param {HTMLLinkElement} stylesheet 样式表元素
+     * @returns {Promise<void>} 加载完成的Promise
+     */
     const ensureStylesheetLoaded = (stylesheet) => {
       return new Promise((resolve) => {
         if (stylesheet.sheet) {
+          // 样式表已加载
           resolve();
         } else {
+          // 等待样式表加载完成
           stylesheet.addEventListener('load', resolve);
           // 添加超时保护
           setTimeout(resolve, 1000);
@@ -411,120 +484,217 @@
       });
     };
     
-    // 等待两个样式表都加载完成
+    /**
+     * 等待所有样式表加载完成后应用主题
+     * 
+     * 并发加载策略：
+     * - 使用Promise.all同时等待两个样式表加载
+     * - 确保在样式表完全可用后再进行主题切换
+     */
     Promise.all([
       ensureStylesheetLoaded(lightTheme),
       ensureStylesheetLoaded(darkTheme)
     ]).then(() => {
       console.log('[主题] 样式表加载完成，开始应用主题');
       
-      // 设置主题相关的CSS变量和样式表
+      /**
+       * 主题应用核心逻辑
+       * 
+       * 简化的两种主题模式：
+       * 
+       * 1. 'light' 模式（默认）：
+       *    - 启用GitHub浅色样式表，禁用深色样式表
+       *    - 设置data-theme="light"和vscode-light类
+       * 
+       * 2. 'dark' 模式：
+       *    - 启用GitHub深色样式表，禁用浅色样式表
+       *    - 设置data-theme="dark"和vscode-dark类
+       */
       if (theme === 'light') {
-        // 浅色主题：启用浅色样式表，禁用深色样式表
+        /**
+         * 浅色主题应用
+         * 
+         * 样式表控制：
+         * - lightTheme.disabled = false: 启用GitHub浅色样式
+         * - darkTheme.disabled = true: 禁用GitHub深色样式
+         * 
+         * DOM属性设置：
+         * - data-theme="light": 用于CSS选择器和JavaScript判断
+         * - className="vscode-light": 应用VSCode浅色主题变量
+         */
         lightTheme.disabled = false;
         darkTheme.disabled = true;
         
-        // 设置主题属性和类名
+        // 设置HTML根元素和body元素的主题属性
         document.documentElement.setAttribute('data-theme', 'light');
         document.body.setAttribute('data-theme', 'light');
         document.body.className = 'vscode-light';
         
         console.log('[主题] 应用浅色主题');
       } else if (theme === 'dark') {
-        // 深色主题：启用深色样式表，禁用浅色样式表
+        /**
+         * 深色主题应用
+         * 
+         * 样式表控制：
+         * - lightTheme.disabled = true: 禁用GitHub浅色样式
+         * - darkTheme.disabled = false: 启用GitHub深色样式
+         * 
+         * DOM属性设置：
+         * - data-theme="dark": 用于CSS选择器和JavaScript判断
+         * - className="vscode-dark": 应用VSCode深色主题变量
+         */
         lightTheme.disabled = true;
         darkTheme.disabled = false;
         
-        // 设置主题属性和类名
+        // 设置HTML根元素和body元素的主题属性
         document.documentElement.setAttribute('data-theme', 'dark');
         document.body.setAttribute('data-theme', 'dark');
         document.body.className = 'vscode-dark';
         
         console.log('[主题] 应用深色主题');
-      } else if (theme === 'vscode') {
-        // VSCode主题：根据系统偏好自动选择
-        const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-        
-        lightTheme.disabled = prefersDark;
-        darkTheme.disabled = !prefersDark;
-        
-        const actualTheme = prefersDark ? 'dark' : 'light';
-        const className = prefersDark ? 'vscode-dark' : 'vscode-light';
-        
-        // 设置主题属性和类名
-        document.documentElement.setAttribute('data-theme', actualTheme);
-        document.body.setAttribute('data-theme', actualTheme);
-        document.body.className = className;
-        
-        console.log(`[主题] 应用VSCode主题 - 系统偏好: ${prefersDark ? '深色' : '浅色'}`);
+      } else {
+        /**
+         * 默认回退到浅色主题
+         * 
+         * 如果传入了无效的主题名称，自动回退到浅色主题
+         */
+        console.warn(`[主题] 未知主题: ${theme}，回退到浅色主题`);
+        setTheme('light');
+        return;
       }
       
-      // 强制重新渲染样式 - 确保所有元素都应用新主题
+      /**
+       * 强制DOM重新渲染和样式重新计算
+       * 
+       * 重新渲染策略：
+       * 1. 临时隐藏元素（display: none）
+       * 2. 访问offsetHeight属性触发浏览器重排（reflow）
+       * 3. 恢复元素显示状态
+       * 4. 对关键元素进行额外的样式重新计算
+       * 
+       * 这个过程确保新的主题样式能够正确应用到所有元素上，
+       * 特别是解决某些浏览器的样式缓存问题。
+       */
+      
+      // 重新渲染目录容器
       const tocContainer = document.querySelector('.toc-container');
       if (tocContainer) {
         tocContainer.style.display = 'none';
-        tocContainer.offsetHeight; // 触发重排
+        tocContainer.offsetHeight; // 触发重排，强制浏览器重新计算布局
         tocContainer.style.display = '';
       }
       
-      // 强制重新渲染markdown内容 - 关键修复
+      /**
+       * 重新渲染Markdown内容容器（关键修复）
+       * 
+       * 这是主题切换的关键步骤，确保GitHub样式正确应用：
+       * 1. 隐藏元素并触发重排
+       * 2. 强制重新计算样式（通过getComputedStyle）
+       * 3. 使用visibility属性进行二次重新渲染
+       */
       const markdownBody = document.querySelector('.markdown-body');
       if (markdownBody) {
+        // 第一次重新渲染：display属性
         markdownBody.style.display = 'none';
         markdownBody.offsetHeight; // 触发重排
         markdownBody.style.display = '';
         
-        // 强制重新计算样式
+        // 第二次重新渲染：强制重新计算样式
         const computedStyle = window.getComputedStyle(markdownBody);
         markdownBody.style.visibility = 'hidden';
-        markdownBody.offsetHeight;
+        markdownBody.offsetHeight; // 再次触发重排
         markdownBody.style.visibility = 'visible';
       }
       
-      // 强制重新渲染整个容器
+      // 重新渲染主容器
       const container = document.querySelector('.container');
       if (container) {
         container.style.display = 'none';
         container.offsetHeight; // 触发重排
-        container.style.display = 'flex';
+        container.style.display = 'flex'; // 恢复为flex布局
       }
       
-      // 更新按钮图标
+      /**
+       * 更新UI控件状态
+       * 
+       * 主题切换完成后需要更新相关UI元素：
+       * 1. 主题切换按钮的图标
+       * 2. 按钮的文本显示（兼容性）
+       */
+      
+      // 更新主题切换按钮图标
       const themeBtn = document.querySelector('.toc-theme-toggle');
       if (themeBtn) {
         themeBtn.innerHTML = getThemeIcon(theme);
         console.log(`[主题] 更新按钮图标: ${getThemeIcon(theme)}`);
       }
       
-      // 更新按钮文本（如果存在旧的theme-toggle按钮）
+      // 更新按钮文本（向后兼容旧版本的按钮）
       const themeToggle = document.querySelector('.theme-toggle');
       if (themeToggle) {
         themeToggle.textContent = getThemeDisplayName(theme);
       }
       
+      /**
+       * 主题切换状态日志记录
+       * 
+       * 记录主题切换完成后的关键状态信息：
+       * 1. 样式表的启用/禁用状态
+       * 2. DOM元素的主题属性设置
+       * 3. CSS类名的应用情况
+       */
       console.log(`[主题] 主题切换完成: ${getThemeDisplayName(theme)}`);
       console.log(`[主题] 最终样式表状态 - Light disabled: ${lightTheme.disabled}, Dark disabled: ${darkTheme.disabled}`);
       console.log(`[主题] 最终html data-theme: ${document.documentElement.getAttribute('data-theme')}`);
       console.log(`[主题] 最终body data-theme: ${document.body.getAttribute('data-theme')}`);
       console.log(`[主题] 最终body className: ${document.body.className}`);
       
-      // 验证样式是否正确应用
+      /**
+       * 样式应用效果验证
+       * 
+       * 延迟验证机制：
+       * - 使用200ms延迟，确保浏览器完成样式重新计算
+       * - 通过getComputedStyle获取实际应用的样式值
+       * - 验证关键元素的样式是否正确应用
+       * 
+       * 验证内容：
+       * 1. 基础容器样式（body、content-container）
+       * 2. Markdown内容样式（.markdown-body）
+       * 3. GitHub特定样式（标题边框、表格边框等）
+       */
       setTimeout(() => {
+        console.log('[主题] 开始验证样式应用效果...');
+        
+        // 验证body元素的基础样式
         const bodyStyle = window.getComputedStyle(document.body);
         console.log(`[主题] 验证 - body背景色: ${bodyStyle.backgroundColor}`);
         console.log(`[主题] 验证 - body文字色: ${bodyStyle.color}`);
         
-        // 重新查询markdownBody元素（避免作用域问题）
+        /**
+         * 验证Markdown内容容器样式
+         * 
+         * 重新查询元素的原因：
+         * - 避免闭包作用域问题
+         * - 确保获取到最新的DOM元素引用
+         * 
+         * 容错处理：
+         * - 如果.markdown-body元素不存在，可能是内容还未加载
+         * - 这种情况在首次打开预览或空文档时是正常的
+         */
         const currentMarkdownBody = document.querySelector('.markdown-body');
         if (currentMarkdownBody) {
           const markdownBodyStyle = window.getComputedStyle(currentMarkdownBody);
           console.log(`[主题] 验证 - markdown-body背景色: ${markdownBodyStyle.backgroundColor}`);
           console.log(`[主题] 验证 - markdown-body文字色: ${markdownBodyStyle.color}`);
+          
+          // 检查是否有实际内容
+          const hasContent = currentMarkdownBody.children.length > 0 || currentMarkdownBody.textContent.trim().length > 0;
+          console.log(`[主题] 验证 - markdown-body是否有内容: ${hasContent}`);
         } else {
-          console.warn(`[主题] 警告 - .markdown-body元素不存在`);
+          console.warn(`[主题] 警告 - .markdown-body元素不存在（可能内容还未加载）`);
         }
         
-        // 检查content-container是否存在
+        // 验证内容容器样式
         const contentContainer = document.querySelector('.content-container');
         if (contentContainer) {
           const containerStyle = window.getComputedStyle(contentContainer);
@@ -533,27 +703,66 @@
           console.warn(`[主题] 警告 - .content-container元素不存在`);
         }
         
-        // 检查GitHub样式是否正确应用
+        /**
+         * 验证GitHub官方样式的关键特征
+         * 
+         * 验证项目：
+         * - H1标题的下边框（GitHub浅色/深色主题的特征）
+         * - H2标题的下边框
+         * - 表格的边框样式
+         * 
+         * 这些样式是判断GitHub主题是否正确应用的关键指标
+         * 
+         * 容错处理：
+         * - 如果没有找到对应元素，说明当前文档中没有这些内容
+         * - 这是正常情况，不需要报错
+         */
         const h1Elements = document.querySelectorAll('.markdown-body h1');
         const h2Elements = document.querySelectorAll('.markdown-body h2');
         const tableElements = document.querySelectorAll('.markdown-body table');
         
+        console.log(`[主题] 验证 - 找到H1元素: ${h1Elements.length}个, H2元素: ${h2Elements.length}个, 表格: ${tableElements.length}个`);
+        
         if (h1Elements.length > 0) {
           const h1Style = window.getComputedStyle(h1Elements[0]);
           console.log(`[主题] 验证 - H1边框: ${h1Style.borderBottom}`);
+        } else {
+          console.log(`[主题] 验证 - 当前文档无H1标题`);
         }
         
         if (h2Elements.length > 0) {
           const h2Style = window.getComputedStyle(h2Elements[0]);
           console.log(`[主题] 验证 - H2边框: ${h2Style.borderBottom}`);
+        } else {
+          console.log(`[主题] 验证 - 当前文档无H2标题`);
         }
         
         if (tableElements.length > 0) {
           const tableStyle = window.getComputedStyle(tableElements[0]);
           console.log(`[主题] 验证 - 表格边框: ${tableStyle.border}`);
+        } else {
+          console.log(`[主题] 验证 - 当前文档无表格`);
         }
+        
+        console.log('[主题] 样式验证完成');
       }, 200);
     });
+  }
+
+  /**
+   * 获取当前主题
+   * 
+   * 优先级：
+   * 1. 全局变量 currentTheme
+   * 2. localStorage 存储的主题
+   * 3. 配置中的主题
+   * 4. 默认主题 'light'
+   */
+  function getCurrentTheme() {
+    return currentTheme || 
+           localStorage.getItem('markdownLiveSync.theme') || 
+           (window.markdownLiveSyncConfig?.theme?.current) || 
+           'light';
   }
 
   /**
@@ -561,11 +770,10 @@
    */
   function getThemeDisplayName(theme) {
     const names = {
-      'vscode': '🖥️ VSCode',
       'light': '🌞 浅色',
       'dark': '🌙 深色'
     };
-    return names[theme] || theme;
+    return names[theme] || '🌞 浅色';
   }
 
   /**
@@ -1523,9 +1731,17 @@
     console.log('[内容更新] 更新预览内容');
     
     // 更新HTML内容
-    const contentContainer = document.querySelector('.content-container');
-    if (contentContainer && html) {
-      contentContainer.innerHTML = html;
+    const markdownBody = document.querySelector('.markdown-body');
+    if (markdownBody && html) {
+      markdownBody.innerHTML = html;
+      console.log('[内容更新] 已更新.markdown-body内容');
+    } else if (html) {
+      // 如果.markdown-body不存在，重新创建完整结构
+      const contentContainer = document.querySelector('.content-container');
+      if (contentContainer) {
+        contentContainer.innerHTML = `<div class="markdown-body">${html}</div>`;
+        console.log('[内容更新] 重新创建.markdown-body结构');
+      }
     }
     
     // 更新目录
@@ -1540,6 +1756,17 @@
     initializeMermaid();
     initializeCodeBlocks(); // 重新初始化代码块
     setupIntersectionObserver();
+    
+    // 内容更新后重新应用当前主题
+    // 这确保新内容能正确应用主题样式
+    const currentTheme = getCurrentTheme();
+    if (currentTheme) {
+      console.log(`[内容更新] 重新应用主题: ${currentTheme}`);
+      // 延迟一点时间确保DOM更新完成
+      setTimeout(() => {
+        setTheme(currentTheme);
+      }, 50);
+    }
   }
 
   /**
@@ -1582,7 +1809,7 @@
       // 创建复制按钮
       const copyButton = document.createElement('button');
       copyButton.className = 'code-copy-button';
-      copyButton.innerHTML = '📋 复制';
+      copyButton.innerHTML = '❐';
       copyButton.title = '复制代码';
       copyButton.onclick = () => copyCodeToClipboard(codeElement, copyButton);
       toolbar.appendChild(copyButton);
@@ -1670,7 +1897,7 @@
       
       // 显示复制成功反馈
       const originalText = button.innerHTML;
-      button.innerHTML = '✅ 已复制';
+      button.innerHTML = '✅';
       button.classList.add('copied');
       
       setTimeout(() => {
@@ -1695,7 +1922,62 @@
     }
   }
 
-  // 当DOM加载完成时初始化
+  // ==================== 主程序初始化 ====================
+
+  /**
+   * 主程序初始化函数
+   * 
+   * 初始化流程：
+   * 1. 获取插件配置
+   * 2. 初始化主题系统和目录控件
+   * 3. 设置事件监听器
+   * 4. 初始化Mermaid图表支持
+   * 5. 初始化目录功能
+   * 6. 设置滚动同步观察器
+   * 7. 初始化响应式布局
+   * 8. 初始化代码块增强功能
+   * 9. 发送就绪消息给VSCode
+   */
+  function initialize() {
+    console.log('Markdown LiveSync 预览脚本初始化');
+    
+    // 获取从后端传递的配置
+    config = window.markdownLiveSyncConfig || {};
+    
+    // 初始化主题系统（包含样式表加载等待和主题应用）
+    initializeThemeAndToc();
+    
+    // 设置各种事件监听器（滚动、点击、键盘、窗口大小变化等）
+    setupEventListeners();
+    
+    // 初始化Mermaid图表渲染引擎
+    initializeMermaid();
+    
+    // 初始化目录功能（状态管理、事件绑定等）
+    initializeToc();
+    
+    // 设置IntersectionObserver用于滚动同步
+    setupIntersectionObserver();
+    
+    // 初始化响应式布局（处理不同屏幕尺寸）
+    initializeResponsiveLayout();
+    
+    // 初始化代码块增强功能（行号、复制按钮等）
+    initializeCodeBlocks();
+    
+    // 向VSCode发送预览面板就绪消息
+    vscode.postMessage({ type: 'ready' });
+  }
+
+  // ==================== 程序启动 ====================
+
+  /**
+   * 程序启动逻辑
+   * 
+   * 启动策略：
+   * - 如果DOM正在加载，等待DOMContentLoaded事件
+   * - 如果DOM已加载完成，立即执行初始化
+   */
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', initialize);
   } else {
