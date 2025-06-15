@@ -31,78 +31,56 @@ let extension: Extension | undefined;
 /**
  * 插件激活函数
  * 
- * VSCode扩展激活的入口点，当插件被激活时由VSCode自动调用
- * 负责初始化所有核心服务、注册命令和事件监听器
+ * VSCode扩展激活时的入口函数，当插件首次加载或满足激活条件时调用
+ * 负责初始化插件的核心服务、注册命令和设置事件监听器
  * 
  * 激活流程：
- * 1. 初始化日志系统，便于调试和问题排查
- * 2. 创建配置管理器实例，加载用户配置
- * 3. 初始化核心扩展服务
- * 4. 注册VSCode命令和事件监听器
- * 5. 验证命令注册状态
+ * 1. 创建日志系统，提供调试和错误追踪能力
+ * 2. 初始化配置管理器，加载用户和默认配置
+ * 3. 创建Extension核心服务实例
+ * 4. 调用Extension.activate()完成插件初始化
+ * 5. 设置全局错误处理，确保插件稳定运行
  * 
- * @param context VSCode扩展上下文，包含扩展的元数据和生命周期管理
- * @returns Promise<void> 异步激活完成标志
- * @throws {Error} 当激活过程中发生错误时抛出异常
+ * @param context VSCode扩展上下文，包含扩展运行环境和API访问权限
+ * @returns void
  */
 export async function activate(context: vscode.ExtensionContext): Promise<void> {
-  console.log('开始激活 Markdown LiveSync 插件...');
-  
   try {
-    // 步骤1: 初始化日志器
-    // Logger采用单例模式，确保全局日志记录的一致性
-    const logger = Logger;
-    
-    // 显示日志输出面板，便于开发者调试和用户问题排查
-    logger.show();
-    
-    console.log('初始化配置管理器...');
-    
+    // 步骤1: 初始化日志系统
+    // 创建专用的输出通道，用于调试和错误追踪
+    Logger.initialize();
+
     // 步骤2: 初始化配置管理器
     // ConfigurationManager负责管理所有插件配置项，包括预览设置、目录配置、主题选项等
     const configManager = ConfigurationManager.getInstance();
 
-    logger.info('Markdown LiveSync 插件开始激活...');
-    console.log('创建Extension实例...');
-
-    // 步骤3: 创建并激活插件核心服务实例
-    // Extension类是插件的核心控制器，管理所有业务逻辑
+    // 步骤3: 创建Extension核心服务实例
+    // Extension是插件的主控制器，管理所有核心功能
     extension = Extension.getInstance(context);
-    
-    console.log('调用Extension.activate()...');
-    
-    // 步骤4: 激活核心服务
-    // 这一步会注册所有命令、事件监听器和配置监听器
+
+    // 步骤4: 激活Extension服务
+    // 注册命令、事件监听器，启动插件的所有功能
     await extension.activate();
 
-    logger.info('Markdown LiveSync 插件激活成功');
-    console.log('Markdown LiveSync 插件激活成功！');
+    // 步骤5: 记录激活成功
+    Logger.info('Markdown LiveSync 插件激活成功！');
     
-    // 步骤5: 验证命令注册状态
-    // 确保所有插件命令都已正确注册到VSCode中
-    const commands = await vscode.commands.getCommands();
-    const livesynCommands = commands.filter(cmd => cmd.startsWith('markdown-livesync.'));
-    console.log('已注册的命令:', livesynCommands);
-    logger.info(`已注册命令: ${livesynCommands.join(', ')}`);
-    
+    // 步骤6: 输出已注册的命令列表（用于调试）
+    const livesynCommands = await vscode.commands.getCommands(true);
+    const markdownCommands = livesynCommands.filter(cmd => cmd.startsWith('markdown-livesync'));
+    Logger.debug('已注册的命令: ' + markdownCommands.join(', '));
+
   } catch (error) {
-    // 错误处理：记录详细错误信息并向用户展示友好的错误消息
-    const errorMessage = `Markdown LiveSync 插件激活失败: ${(error as Error).message}`;
-    console.error(errorMessage, error);
+    // 激活失败的错误处理
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    Logger.error('Markdown LiveSync 插件激活失败: ' + errorMessage);
     
-    // 确保错误信息被记录到日志中，即使日志系统可能也有问题
-    try {
-      Logger.error('插件激活失败', error as Error);
-      Logger.show();
-    } catch (logError) {
-      console.error('日志记录也失败了:', logError);
-    }
+    // 向用户显示错误信息
+    vscode.window.showErrorMessage(
+      `Markdown LiveSync 插件激活失败: ${errorMessage}`
+    );
     
-    // 向用户显示错误消息
-    vscode.window.showErrorMessage(errorMessage);
-    
-    // 重新抛出错误，让VSCode知道激活失败
-    // 这样VSCode会将插件标记为激活失败状态
+    // 重新抛出错误，让VSCode知道插件激活失败
     throw error;
   }
 }

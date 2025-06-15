@@ -20,9 +20,9 @@
  * - 'ready': WebView加载完成通知
  * - 'update-content': 更新预览内容
  * - 'sync-cursor': 同步光标位置
- * - 'click': 处理点击事件
- * - 'scroll': 处理滚动事件  
  * - 'toc-click': 目录点击导航
+ * - 'toc-toggle': 目录折叠/展开
+ * - 'toc-expand-to-level': 目录分级展开
  * 
  * @author hmslsky
  * @version 1.0.2
@@ -238,13 +238,10 @@ export class MarkdownPreviewPanel {
    * 
    * 支持的消息类型：
    * - ready: WebView加载完成
-   * - click: 预览内容点击事件
-   * - scroll: 预览滚动事件
    * - toc-click: 目录点击导航
    * - sync-cursor: 预览到编辑器的光标同步
    * - toc-toggle: 目录折叠/展开
    * - toc-expand-to-level: 目录分级展开
-   * - debug-info: 调试信息请求
    * 
    * @param message WebView发送的消息对象
    */
@@ -260,19 +257,6 @@ export class MarkdownPreviewPanel {
           this.webviewReady = true;
           await this.updateContent();
         }
-        break;
-        
-      case 'click':
-        // 处理预览内容点击事件
-        this.logger.debug('[Webview] 处理点击事件');
-        await this.handleClick(message);
-        break;
-        
-      case 'scroll':
-        // 处理预览滚动事件，实现预览到编辑器的同步
-        this.logger.debug(`[Webview] 处理滚动事件: 第${message.line + 1}行`);
-        await this.syncEditorToLine(message.line);
-        this.handleScroll(message);
         break;
         
       case 'toc-click':
@@ -297,12 +281,6 @@ export class MarkdownPreviewPanel {
         // 处理目录的分级展开
         this.logger.debug(`[Webview] 处理目录分级展开: 第${message.level}级`);
         this.handleTocExpandToLevel(message);
-        break;
-        
-      case 'debug-info':
-        // 处理调试信息请求
-        this.logger.debug('[Webview] 处理调试信息请求');
-        this.handleDebugInfo(message);
         break;
         
       default:
@@ -425,7 +403,6 @@ export class MarkdownPreviewPanel {
     <script nonce="${nonce}">
         // 传递配置到前端
         window.markdownLiveSyncConfig = ${JSON.stringify(config)};
-        console.log('[配置] 传递配置到前端:', window.markdownLiveSyncConfig);
     </script>
     <script nonce="${nonce}" src="${mermaidUri}"></script>
     <script nonce="${nonce}" src="${scriptUri}"></script>
@@ -562,30 +539,6 @@ export class MarkdownPreviewPanel {
   }
 
   /**
-   * 处理预览内容点击事件
-   * 
-   * 预留的点击事件处理方法，可扩展实现点击跳转等功能
-   * 
-   * @param _message 点击事件消息对象
-   */
-  private async handleClick(_message: any): Promise<void> {
-    // 处理点击事件的具体逻辑
-    // 可以实现点击跳转到编辑器对应位置等功能
-  }
-
-  /**
-   * 处理预览滚动事件
-   * 
-   * 预留的滚动事件处理方法，可扩展实现滚动状态管理
-   * 
-   * @param _message 滚动事件消息对象
-   */
-  private handleScroll(_message: any): void {
-    // 处理滚动事件的具体逻辑
-    // 可以实现滚动位置记忆等功能
-  }
-
-  /**
    * 处理目录点击事件
    * 
    * 实现目录导航功能，点击目录项跳转到对应的编辑器位置
@@ -673,18 +626,6 @@ export class MarkdownPreviewPanel {
   }
 
   /**
-   * 处理调试信息请求
-   * 
-   * 预留的调试信息处理方法
-   * 
-   * @param _message 调试信息请求消息
-   */
-  private handleDebugInfo(_message: any): void {
-    // 处理调试信息请求的具体逻辑
-    // 可以返回插件状态、性能数据等调试信息
-  }
-
-  /**
    * 同步光标位置到预览面板
    * 
    * 编辑器到预览的同步核心方法
@@ -705,51 +646,6 @@ export class MarkdownPreviewPanel {
       type: 'sync-cursor',
       line: position.line,
     });
-  }
-
-  /**
-   * 同步编辑器到指定行（带焦点）
-   * 
-   * 预览到编辑器的同步方法，会抢夺编辑器焦点
-   * 适用于用户主动操作（如目录点击）的场景
-   * 
-   * @param line 目标行号（0基索引）
-   */
-  private async syncEditorToLine(line: number): Promise<void> {
-    if (!this.currentDocument) {
-      this.logger.warn('[同步编辑器] 当前没有文档');
-      return;
-    }
-    
-    try {
-      this.logger.debug(`[同步编辑器] 尝试同步到第${line + 1}行 (0基索引: ${line})`);
-      
-      const position = new vscode.Position(line, 0);
-      const selection = new vscode.Selection(position, position);
-      
-      // 查找对应的编辑器
-      const editors = vscode.window.visibleTextEditors;
-      const targetEditor = editors.find(editor => 
-        editor.document.uri.toString() === this.currentDocument!.uri.toString()
-      );
-      
-      if (targetEditor) {
-        // 在现有编辑器中设置光标并聚焦
-        targetEditor.selection = selection;
-        targetEditor.revealRange(selection, vscode.TextEditorRevealType.InCenter);
-        // 显示编辑器（抢夺焦点）
-        await vscode.window.showTextDocument(this.currentDocument, { selection });
-      } else {
-        // 打开新的编辑器
-        const editor = await vscode.window.showTextDocument(this.currentDocument);
-        editor.selection = selection;
-        editor.revealRange(selection, vscode.TextEditorRevealType.InCenter);
-      }
-      
-      this.logger.debug(`[同步编辑器] 成功同步到第${line + 1}行`);
-    } catch (error) {
-      this.logger.error('[同步编辑器] 同步失败: ' + (error instanceof Error ? error.message : String(error)));
-    }
   }
 
   /**

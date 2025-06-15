@@ -92,48 +92,37 @@ export class Extension {
   }
 
   /**
-   * 激活插件核心功能
+   * 激活插件核心服务
    * 
-   * 插件激活的核心流程，按顺序执行各项初始化任务
-   * 任何一步失败都会导致整个激活过程失败
+   * 插件激活的核心流程，负责初始化所有功能模块
+   * 按顺序执行初始化任务，确保依赖关系正确建立
    * 
    * 激活步骤：
-   * 1. 注册VSCode命令
-   * 2. 设置事件监听器
-   * 3. 配置变更监听
+   * 1. 注册VSCode命令（预览、调试等）
+   * 2. 设置文档和编辑器事件监听器
+   * 3. 监听配置变更，支持热重载
    * 
-   * @returns Promise<void> 激活完成的异步标志
-   * @throws {Error} 当任何激活步骤失败时抛出错误
+   * @throws {Error} 当任何初始化步骤失败时抛出错误
    */
   public async activate(): Promise<void> {
     Logger.info('Markdown LiveSync 插件正在激活...');
-    console.log('Extension.activate() 开始执行...');
 
     try {
-      console.log('开始注册命令...');
       // 步骤1: 注册所有VSCode命令
       // 包括预览打开、侧边预览、调试工具等用户可调用的命令
       this.registerCommands();
-      console.log('命令注册完成');
 
-      console.log('开始注册事件监听器...');
       // 步骤2: 注册编辑器事件监听器
       // 监听文档变化、光标移动、滚动等事件以实现实时同步
       this.registerEventListeners();
-      console.log('事件监听器注册完成');
 
-      console.log('开始注册配置监听器...');
       // 步骤3: 注册配置变更监听器
       // 支持用户配置的热重载，无需重启插件
       this.registerConfigurationListeners();
-      console.log('配置监听器注册完成');
 
       Logger.info('Markdown LiveSync 插件激活成功');
-      console.log('Extension.activate() 执行完成');
     } catch (error) {
-      const errorMsg = '插件激活失败: ' + (error instanceof Error ? error.message : String(error));
-      Logger.error(errorMsg);
-      console.error('Extension.activate() 失败:', error);
+      Logger.error('Markdown LiveSync 插件激活失败', error as Error);
       throw error;
     }
   }
@@ -153,10 +142,7 @@ export class Extension {
    * 每个命令都包装在try-catch中，避免单个命令错误影响其他功能
    */
   private registerCommands(): void {
-    console.log('registerCommands() 开始执行...');
-    
     try {
-      console.log('注册 openPreview 命令...');
       // 注册主预览命令
       // 在当前编辑器窗口中打开Markdown预览面板
       const openPreviewCommand = vscode.commands.registerCommand(
@@ -171,7 +157,6 @@ export class Extension {
         }
       );
 
-      console.log('注册 openPreviewToSide 命令...');
       // 注册侧边预览命令
       // 在编辑器侧边打开Markdown预览面板，便于并排查看
       const openPreviewToSideCommand = vscode.commands.registerCommand(
@@ -186,7 +171,6 @@ export class Extension {
         }
       );
 
-      console.log('注册 toggleDebugTools 命令...');
       // 注册调试工具切换命令
       // 显示或隐藏调试工具面板，帮助开发者调试和排查问题
       const toggleDebugToolsCommand = vscode.commands.registerCommand(
@@ -201,7 +185,6 @@ export class Extension {
         }
       );
 
-      console.log('将命令添加到订阅列表...');
       // 添加到资源清理列表
       this.disposables.push(
         openPreviewCommand,
@@ -209,16 +192,13 @@ export class Extension {
         toggleDebugToolsCommand
       );
 
-      console.log('将命令添加到上下文订阅...');
       // 注册到VSCode上下文中，确保插件停用时自动清理
       this.context.subscriptions.push(...this.disposables);
       
       Logger.info('命令注册完成');
-      console.log('registerCommands() 执行完成');
     } catch (error) {
       const errorMsg = '命令注册失败: ' + (error instanceof Error ? error.message : String(error));
       Logger.error(errorMsg);
-      console.error('registerCommands() 失败:', error);
       throw error;
     }
   }

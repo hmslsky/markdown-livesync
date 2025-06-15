@@ -1075,10 +1075,10 @@
     }
     
     // 清除现有的分级控制按钮
-    // const existingLevelButtons = controlsContainer.querySelectorAll('.toc-level-control');
-    // existingLevelButtons.forEach(btn => btn.remove());
-    let existingLevelButtonsDiv = controlsContainer.querySelectorAll('.toc-level-controls');
-    existingLevelButtonsDiv.remove()
+    const existingLevelButtons = controlsContainer.querySelectorAll('.toc-level-control');
+    existingLevelButtons.forEach(btn => btn.remove());
+    // let existingLevelButtonsDiv = controlsContainer.querySelectorAll('.toc-level-controls');
+    // existingLevelButtonsDiv.remove()
 
     // 创建分级展开按钮
     if (availableLevels.length > 1) {

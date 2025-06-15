@@ -473,7 +473,7 @@ export class ConfigurationManager {
         showToggleButton: config.get('toc.showToggleButton', true),
         defaultCollapseLevel: config.get('toc.defaultCollapseLevel', 2),
         autoExpandCurrent: config.get('toc.autoExpandCurrent', true),
-        position: config.get('toc.position', 'left'),
+        position: config.get('toc.position', 'right'),
         width: config.get('toc.width', 280)
       },
       
