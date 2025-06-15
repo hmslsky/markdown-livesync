@@ -1,11 +1,12 @@
 /**
  * Markdown LiveSync 预览样式
  * 
- * 使用GitHub官方Markdown样式，只提供布局、代码块增强和主题切换功能
+ * 专注于布局、代码块增强和主题切换功能
+ * 不覆盖GitHub官方Markdown样式，确保样式完整性
  * 目录相关样式已移至 toc.css 文件
  * 
  * @author hmslsky
- * @version 2.0.0
+ * @version 2.1.0
  */
 
 /* VSCode主题变量定义 */
@@ -54,20 +55,6 @@ html, body {
   display: none !important;
 }
 
-/* 深色主题下的主题切换按钮 */
-@media (prefers-color-scheme: dark) {
-  .theme-toggle {
-    background: #21262d;
-    border-color: #30363d;
-    color: #e6edf3;
-    box-shadow: 0 1px 3px rgba(1, 4, 9, 0.8);
-  }
-  
-  .theme-toggle:hover {
-    background: #30363d;
-  }
-}
-
 /* 容器布局 */
 .container {
   display: flex;
@@ -76,59 +63,40 @@ html, body {
   position: relative;
 }
 
-/* 内容容器 */
+/* 内容容器 - 移除背景色设置，让GitHub样式生效 */
 .content-container {
   flex: 1;
   overflow-y: auto;
   padding: 20px;
-  background-color: #ffffff;
+  /* 移除固定背景色，让GitHub主题样式生效 */
 }
 
-@media (prefers-color-scheme: dark) {
-  .content-container {
-    background-color: #0d1117;
-  }
-}
-
-/* GitHub Markdown样式容器 */
+/* GitHub Markdown样式容器 - 确保不覆盖GitHub样式 */
 .markdown-body {
   box-sizing: border-box;
   min-width: 200px;
   max-width: 980px;
   margin: 0 auto;
+  /* 移除所有可能覆盖GitHub样式的属性 */
 }
 
-/* 调试工具 */
+/* 调试工具 - 使用VSCode主题变量 */
 .debug-tools {
   position: fixed;
   bottom: 20px;
   left: 20px;
-  background: #f6f8fa;
-  border: 1px solid #d1d9e0;
+  background: var(--vscode-editor-background);
+  border: 1px solid var(--vscode-panel-border);
   border-radius: 6px;
   padding: 16px;
-  box-shadow: 0 4px 12px rgba(31, 35, 40, 0.15);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
   z-index: 1000;
-}
-
-@media (prefers-color-scheme: dark) {
-  .debug-tools {
-    background: #161b22;
-    border-color: #30363d;
-    box-shadow: 0 4px 12px rgba(1, 4, 9, 0.8);
-  }
 }
 
 .debug-tools h3 {
   margin: 0 0 12px 0;
   font-size: 14px;
-  color: #1f2328;
-}
-
-@media (prefers-color-scheme: dark) {
-  .debug-tools h3 {
-    color: #e6edf3;
-  }
+  color: var(--vscode-editor-foreground);
 }
 
 .debug-info {
@@ -137,52 +105,32 @@ html, body {
 
 .debug-info p {
   margin: 4px 0;
-  color: #656d76;
+  color: var(--vscode-descriptionForeground);
 }
 
-@media (prefers-color-scheme: dark) {
-  .debug-info p {
-    color: #8d96a0;
-  }
-}
-
-/* Mermaid图表样式 */
+/* Mermaid图表样式 - 使用VSCode主题变量 */
 .mermaid-container {
   margin: 20px 0;
   text-align: center;
-  border: 1px solid #d1d9e0;
+  border: 1px solid var(--vscode-panel-border);
   border-radius: 6px;
   overflow: hidden;
-  box-shadow: 0 2px 8px rgba(31, 35, 40, 0.04);
-}
-
-@media (prefers-color-scheme: dark) {
-  .mermaid-container {
-    border-color: #30363d;
-    box-shadow: 0 2px 8px rgba(1, 4, 9, 0.8);
-  }
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
 }
 
 .mermaid-controls {
-  background-color: #f6f8fa;
+  background-color: var(--vscode-editor-background);
   padding: 8px;
   display: flex;
   justify-content: center;
   gap: 8px;
-  border-bottom: 1px solid #d1d9e0;
-}
-
-@media (prefers-color-scheme: dark) {
-  .mermaid-controls {
-    background-color: #161b22;
-    border-bottom-color: #30363d;
-  }
+  border-bottom: 1px solid var(--vscode-panel-border);
 }
 
 .mermaid-controls button {
-  background: #f3f4f6;
-  border: 1px solid #d1d9e0;
-  color: #1f2328;
+  background: var(--vscode-list-hoverBackground);
+  border: 1px solid var(--vscode-panel-border);
+  color: var(--vscode-editor-foreground);
   padding: 4px 8px;
   border-radius: 4px;
   cursor: pointer;
@@ -190,35 +138,16 @@ html, body {
   transition: all 0.2s ease;
 }
 
-@media (prefers-color-scheme: dark) {
-  .mermaid-controls button {
-    background: #21262d;
-    border-color: #30363d;
-    color: #e6edf3;
-  }
-}
-
 .mermaid-controls button:hover {
-  background: #e1e4e8;
+  background: var(--vscode-list-activeSelectionBackground);
+  color: var(--vscode-list-activeSelectionForeground);
   transform: translateY(-1px);
-}
-
-@media (prefers-color-scheme: dark) {
-  .mermaid-controls button:hover {
-    background: #30363d;
-  }
 }
 
 .mermaid-wrapper {
   padding: 20px;
-  background-color: #ffffff;
+  background-color: var(--vscode-editor-background);
   overflow: auto;
-}
-
-@media (prefers-color-scheme: dark) {
-  .mermaid-wrapper {
-    background-color: #0d1117;
-  }
 }
 
 .mermaid {
@@ -252,7 +181,7 @@ html, body {
   }
 }
 
-/* 滚动条样式 */
+/* 滚动条样式 - 使用VSCode主题变量 */
 ::-webkit-scrollbar {
   width: 8px;
   height: 8px;
@@ -263,42 +192,22 @@ html, body {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #d1d9e0;
+  background: var(--vscode-scrollbarSlider-background);
   border-radius: 4px;
 }
 
-@media (prefers-color-scheme: dark) {
-  ::-webkit-scrollbar-thumb {
-    background: #30363d;
-  }
-}
-
 ::-webkit-scrollbar-thumb:hover {
-  background: #8c959f;
+  background: var(--vscode-scrollbarSlider-hoverBackground);
 }
 
-@media (prefers-color-scheme: dark) {
-  ::-webkit-scrollbar-thumb:hover {
-    background: #6e7681;
-  }
-}
-
-/* 代码块增强样式 */
+/* 代码块增强样式 - 使用VSCode主题变量 */
 .code-block-container {
   margin: 16px 0;
-  border: 1px solid #d1d9e0;
+  border: 1px solid var(--vscode-panel-border);
   border-radius: 8px;
   overflow: hidden;
-  background: #f6f8fa;
-  box-shadow: 0 2px 4px rgba(31, 35, 40, 0.04);
-}
-
-@media (prefers-color-scheme: dark) {
-  .code-block-container {
-    border-color: #30363d;
-    background: #161b22;
-    box-shadow: 0 2px 4px rgba(1, 4, 9, 0.8);
-  }
+  background: var(--vscode-list-hoverBackground);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.04);
 }
 
 .code-block-toolbar {
@@ -306,35 +215,22 @@ html, body {
   justify-content: space-between;
   align-items: center;
   padding: 8px 12px;
-  background: #f1f3f4;
-  border-bottom: 1px solid #d1d9e0;
+  background: var(--vscode-list-hoverBackground);
+  border-bottom: 1px solid var(--vscode-panel-border);
   font-size: 12px;
 }
 
-@media (prefers-color-scheme: dark) {
-  .code-block-toolbar {
-    background: #21262d;
-    border-bottom-color: #30363d;
-  }
-}
-
 .code-language {
-  color: #656d76;
+  color: var(--vscode-descriptionForeground);
   font-weight: 500;
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
 
-@media (prefers-color-scheme: dark) {
-  .code-language {
-    color: #8d96a0;
-  }
-}
-
 .code-copy-button {
-  background: #f3f4f6;
-  border: 1px solid #d1d9e0;
-  color: #1f2328;
+  background: var(--vscode-list-hoverBackground);
+  border: 1px solid var(--vscode-panel-border);
+  color: var(--vscode-editor-foreground);
   padding: 4px 8px;
   border-radius: 4px;
   cursor: pointer;
@@ -346,25 +242,11 @@ html, body {
   gap: 4px;
 }
 
-@media (prefers-color-scheme: dark) {
-  .code-copy-button {
-    background: #30363d;
-    border-color: #484f58;
-    color: #e6edf3;
-  }
-}
-
 .code-copy-button:hover {
-  background: #e1e4e8;
+  background: var(--vscode-list-activeSelectionBackground);
+  color: var(--vscode-list-activeSelectionForeground);
   transform: translateY(-1px);
-  box-shadow: 0 2px 4px rgba(31, 35, 40, 0.1);
-}
-
-@media (prefers-color-scheme: dark) {
-  .code-copy-button:hover {
-    background: #484f58;
-    box-shadow: 0 2px 4px rgba(1, 4, 9, 0.8);
-  }
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .code-copy-button.copied {
@@ -384,18 +266,13 @@ html, body {
   overflow: auto;
 }
 
+/* 代码块样式 - 不覆盖GitHub样式，只提供增强功能 */
 .code-enhanced {
   margin: 0 !important;
   border-radius: 0 !important;
-  background: #ffffff !important;
   position: relative;
   overflow-x: auto;
-}
-
-@media (prefers-color-scheme: dark) {
-  .code-enhanced {
-    background: #0d1117 !important;
-  }
+  /* 移除背景色设置，让GitHub样式生效 */
 }
 
 .has-line-numbers {
@@ -404,9 +281,9 @@ html, body {
 }
 
 .line-numbers {
-  background: #f6f8fa;
-  border-right: 1px solid #d1d9e0;
-  color: #656d76;
+  background: var(--vscode-list-hoverBackground);
+  border-right: 1px solid var(--vscode-panel-border);
+  color: var(--vscode-descriptionForeground);
   font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
   font-size: 12px;
   line-height: 1.45;
@@ -415,14 +292,6 @@ html, body {
   user-select: none;
   min-width: 40px;
   flex-shrink: 0;
-}
-
-@media (prefers-color-scheme: dark) {
-  .line-numbers {
-    background: #161b22;
-    border-right-color: #30363d;
-    color: #8d96a0;
-  }
 }
 
 .line-number {
@@ -450,34 +319,16 @@ html, body {
 }
 
 .code-wrapper::-webkit-scrollbar-track {
-  background: #f1f3f4;
-}
-
-@media (prefers-color-scheme: dark) {
-  .code-wrapper::-webkit-scrollbar-track {
-    background: #21262d;
-  }
+  background: var(--vscode-list-hoverBackground);
 }
 
 .code-wrapper::-webkit-scrollbar-thumb {
-  background: #d1d9e0;
+  background: var(--vscode-scrollbarSlider-background);
   border-radius: 4px;
 }
 
-@media (prefers-color-scheme: dark) {
-  .code-wrapper::-webkit-scrollbar-thumb {
-    background: #484f58;
-  }
-}
-
 .code-wrapper::-webkit-scrollbar-thumb:hover {
-  background: #8c959f;
-}
-
-@media (prefers-color-scheme: dark) {
-  .code-wrapper::-webkit-scrollbar-thumb:hover {
-    background: #6e7681;
-  }
+  background: var(--vscode-scrollbarSlider-hoverBackground);
 }
 
 /* 标题高亮效果 */
@@ -490,10 +341,9 @@ html, body {
   border-radius: 4px !important;
 }
 
-@media (prefers-color-scheme: dark) {
-  .highlight-target {
-    background-color: #332701 !important;
-    border-left-color: #ffc107 !important;
-  }
+/* 深色主题下的标题高亮 */
+[data-theme="dark"] .highlight-target {
+  background-color: #332701 !important;
+  border-left-color: #ffc107 !important;
 }
 

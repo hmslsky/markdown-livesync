@@ -361,6 +361,28 @@ export class MarkdownPreviewPanel {
   private getWebviewContent(html: string, toc: any[]): string {
     const config = this.configManager.getConfig();
     const nonce = this.generateNonce();
+    
+    // 获取当前主题设置
+    const currentTheme = config.theme?.current || 'vscode';
+    
+    // 检测VSCode当前主题类型
+    let prefersDark = false;
+    if (currentTheme === 'vscode') {
+      // 使用VSCode的主题API检测当前主题
+      const currentVSCodeTheme = vscode.window.activeColorTheme;
+      prefersDark = currentVSCodeTheme.kind === vscode.ColorThemeKind.Dark || 
+                   currentVSCodeTheme.kind === vscode.ColorThemeKind.HighContrast;
+    } else {
+      prefersDark = currentTheme === 'dark';
+    }
+    
+    // 根据主题设置初始样式表状态
+    const lightDisabled = currentTheme === 'dark' || (currentTheme === 'vscode' && prefersDark);
+    const darkDisabled = currentTheme === 'light' || (currentTheme === 'vscode' && !prefersDark);
+    
+    // 确定初始主题状态
+    const initialTheme = currentTheme === 'vscode' ? (prefersDark ? 'dark' : 'light') : currentTheme;
+    const initialBodyClass = currentTheme === 'vscode' ? (prefersDark ? 'vscode-dark' : 'vscode-light') : `vscode-${currentTheme}`;
 
     // 获取资源URI（确保安全访问）
     const styleUri = this.panel!.webview.asWebviewUri(
@@ -388,15 +410,15 @@ export class MarkdownPreviewPanel {
     );
 
     return `<!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="zh-CN" data-theme="${initialTheme}">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${this.panel!.webview.cspSource} 'unsafe-inline'; script-src 'nonce-${nonce}'; img-src ${this.panel!.webview.cspSource} https: data:;">
     <title>Markdown预览</title>
-    <!-- GitHub官方Markdown样式 - 通过JavaScript控制 -->
-    <link rel="stylesheet" href="${githubLightUri}" id="github-light-theme">
-    <link rel="stylesheet" href="${githubDarkUri}" id="github-dark-theme" disabled>
+    <!-- GitHub官方Markdown样式 - 根据配置设置初始状态 -->
+    <link rel="stylesheet" href="${githubLightUri}" id="github-light-theme"${lightDisabled ? ' disabled' : ''}>
+    <link rel="stylesheet" href="${githubDarkUri}" id="github-dark-theme"${darkDisabled ? ' disabled' : ''}>
     <!-- 自定义布局和目录样式 -->
     <link rel="stylesheet" href="${styleUri}">
     <link rel="stylesheet" href="${tocStyleUri}">
@@ -407,7 +429,7 @@ export class MarkdownPreviewPanel {
     <script nonce="${nonce}" src="${mermaidUri}"></script>
     <script nonce="${nonce}" src="${scriptUri}"></script>
 </head>
-<body>
+<body class="${initialBodyClass}" data-theme="${initialTheme}">
     <div class="container">
         <div class="toc-container">
             ${this.renderTocContainer(toc)}
@@ -733,6 +755,16 @@ export class MarkdownPreviewPanel {
    */
   public onConfigurationChanged(): void {
     if (this.panel) {
+      // 重新加载配置
+      this.configManager.reloadConfiguration();
+      
+      // 发送配置更新消息到前端
+      this.panel.webview.postMessage({
+        type: 'update-config',
+        config: this.configManager.getConfig()
+      });
+      
+      // 更新内容
       this.updateContent();
     }
   }

@@ -99,7 +99,7 @@
           "properties": {
             "defaultCollapseLevel": {
               "type": "number",
-              "default": 2,
+              "default": 1,
               "description": "目录默认折叠级别"
             },
             "showToggleButton": {
@@ -122,20 +122,121 @@
         "markdown-livesync.theme": {
           "type": "object",
           "properties": {
-            "fontSize": {
-              "type": "number",
-              "default": 14,
-              "description": "预览字体大小"
-            },
-            "fontFamily": {
+            "current": {
               "type": "string",
-              "default": "",
-              "description": "预览字体"
+              "enum": ["vscode", "light", "dark"],
+              "default": "vscode",
+              "description": "当前使用的主题"
             },
-            "lineHeight": {
-              "type": "number",
-              "default": 1.6,
-              "description": "行高"
+            "followVSCode": {
+              "type": "boolean",
+              "default": true,
+              "description": "是否跟随VSCode主题变化"
+            },
+            "custom": {
+              "type": "object",
+              "properties": {
+                "light": {
+                  "type": "object",
+                  "properties": {
+                    "textColor": {
+                      "type": "string",
+                      "default": "#24292e",
+                      "description": "浅色主题文本颜色"
+                    },
+                    "backgroundColor": {
+                      "type": "string",
+                      "default": "#ffffff",
+                      "description": "浅色主题背景颜色"
+                    },
+                    "borderColor": {
+                      "type": "string",
+                      "default": "#e1e4e8",
+                      "description": "浅色主题边框颜色"
+                    },
+                    "linkColor": {
+                      "type": "string",
+                      "default": "#0366d6",
+                      "description": "浅色主题链接颜色"
+                    },
+                    "codeBackground": {
+                      "type": "string",
+                      "default": "#f6f8fa",
+                      "description": "浅色主题代码背景颜色"
+                    },
+                    "sidebarBackground": {
+                      "type": "string",
+                      "default": "#f6f8fa",
+                      "description": "浅色主题侧边栏背景颜色"
+                    },
+                    "tocLevel1Color": {
+                      "type": "string",
+                      "default": "#24292e",
+                      "description": "浅色主题一级标题颜色"
+                    },
+                    "tocLevel2Color": {
+                      "type": "string",
+                      "default": "#586069",
+                      "description": "浅色主题二级标题颜色"
+                    },
+                    "tocLevel3Color": {
+                      "type": "string",
+                      "default": "#6a737d",
+                      "description": "浅色主题三级标题颜色"
+                    }
+                  }
+                },
+                "dark": {
+                  "type": "object",
+                  "properties": {
+                    "textColor": {
+                      "type": "string",
+                      "default": "#e1e4e8",
+                      "description": "深色主题文本颜色"
+                    },
+                    "backgroundColor": {
+                      "type": "string",
+                      "default": "#0d1117",
+                      "description": "深色主题背景颜色"
+                    },
+                    "borderColor": {
+                      "type": "string",
+                      "default": "#30363d",
+                      "description": "深色主题边框颜色"
+                    },
+                    "linkColor": {
+                      "type": "string",
+                      "default": "#58a6ff",
+                      "description": "深色主题链接颜色"
+                    },
+                    "codeBackground": {
+                      "type": "string",
+                      "default": "#161b22",
+                      "description": "深色主题代码背景颜色"
+                    },
+                    "sidebarBackground": {
+                      "type": "string",
+                      "default": "#161b22",
+                      "description": "深色主题侧边栏背景颜色"
+                    },
+                    "tocLevel1Color": {
+                      "type": "string",
+                      "default": "#f0f6fc",
+                      "description": "深色主题一级标题颜色"
+                    },
+                    "tocLevel2Color": {
+                      "type": "string",
+                      "default": "#e1e4e8",
+                      "description": "深色主题二级标题颜色"
+                    },
+                    "tocLevel3Color": {
+                      "type": "string",
+                      "default": "#8b949e",
+                      "description": "深色主题三级标题颜色"
+                    }
+                  }
+                }
+              }
             }
           }
         },
@@ -163,6 +264,32 @@
           "type": "boolean",
           "default": false,
           "description": "启用调试日志"
+        },
+        "markdown-livesync.mermaid": {
+          "type": "object",
+          "properties": {
+            "enabled": {
+              "type": "boolean",
+              "default": true,
+              "description": "是否启用Mermaid图表功能"
+            },
+            "theme": {
+              "type": "string",
+              "enum": ["default", "dark", "forest", "neutral"],
+              "default": "default",
+              "description": "Mermaid图表主题"
+            },
+            "enableZoom": {
+              "type": "boolean",
+              "default": true,
+              "description": "是否启用图表缩放控制"
+            },
+            "enableFullscreen": {
+              "type": "boolean",
+              "default": true,
+              "description": "是否启用图表全屏功能"
+            }
+          }
         }
       }
     }

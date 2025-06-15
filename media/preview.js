@@ -68,23 +68,83 @@
    * 包括主题切换、主题目录头部控制按钮、系统主题变化监听等
    */
   function initializeThemeAndToc() {
-    // 从localStorage获取保存的主题，默认为light主题
-    const savedTheme = localStorage.getItem('markdown-livesync-theme') || 'light';
-    setTheme(savedTheme);
+    console.log('[主题] 开始初始化主题系统');
     
-    // 监听系统主题变化（仅在vscode主题模式下）
-    if (window.matchMedia) {
-      const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
-      mediaQuery.addEventListener('change', (e) => {
-        if (currentTheme === 'vscode') {
-          // 重新应用vscode主题以响应系统变化
-          setTheme('vscode');
+    // 等待DOM和样式表完全加载
+    const waitForStylesheets = () => {
+      return new Promise((resolve) => {
+        const lightTheme = document.getElementById('github-light-theme');
+        const darkTheme = document.getElementById('github-dark-theme');
+        
+        if (!lightTheme || !darkTheme) {
+          console.log('[主题] 样式表尚未加载，等待中...');
+          setTimeout(() => waitForStylesheets().then(resolve), 50);
+          return;
         }
+        
+        // 检查样式表是否已加载
+        const checkLoaded = () => {
+          const lightLoaded = lightTheme.sheet !== null;
+          const darkLoaded = darkTheme.sheet !== null;
+          
+          console.log(`[主题] 样式表加载状态 - Light: ${lightLoaded}, Dark: ${darkLoaded}`);
+          
+          if (lightLoaded && darkLoaded) {
+            resolve();
+          } else {
+            // 添加加载事件监听器
+            if (!lightLoaded) {
+              lightTheme.addEventListener('load', checkLoaded, { once: true });
+            }
+            if (!darkLoaded) {
+              darkTheme.addEventListener('load', checkLoaded, { once: true });
+            }
+            // 添加超时保护
+            setTimeout(resolve, 2000);
+          }
+        };
+        
+        checkLoaded();
       });
-    }
+    };
     
-    // 创建目录头部控制按钮
-    createTocHeaderControls();
+    waitForStylesheets().then(() => {
+      console.log('[主题] 样式表加载完成，开始初始化主题');
+      
+      // 优先使用配置中的主题设置，然后是localStorage，最后是默认值
+      let initialTheme = 'vscode'; // 默认使用vscode主题
+      
+      if (config && config.theme && config.theme.current) {
+        initialTheme = config.theme.current;
+        console.log(`[主题] 使用配置中的主题: ${initialTheme}`);
+      } else {
+        const savedTheme = localStorage.getItem('markdown-livesync-theme');
+        if (savedTheme) {
+          initialTheme = savedTheme;
+          console.log(`[主题] 使用localStorage中的主题: ${initialTheme}`);
+        } else {
+          console.log(`[主题] 使用默认主题: ${initialTheme}`);
+        }
+      }
+      
+      setTheme(initialTheme);
+      
+      // 监听系统主题变化（仅在vscode主题模式下）
+      if (window.matchMedia) {
+        const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+        mediaQuery.addEventListener('change', (e) => {
+          if (currentTheme === 'vscode') {
+            console.log(`[主题] 系统主题变化: ${e.matches ? '深色' : '浅色'}`);
+            setTheme('vscode'); // 重新应用vscode主题以响应系统变化
+          }
+        });
+      }
+      
+      console.log('[主题] 主题系统初始化完成');
+      
+      // 创建目录头部控制按钮
+      createTocHeaderControls();
+    });
   }
 
   /**
@@ -306,73 +366,194 @@
    */
   function setTheme(theme) {
     console.log(`[主题] 开始切换主题到: ${theme}`);
+    
+    // 调试：检查关键DOM元素是否存在
+    const elementsToCheck = ['.markdown-body', '.content-container', '.toc-container', '.container'];
+    elementsToCheck.forEach(selector => {
+      const element = document.querySelector(selector);
+      console.log(`[主题] DOM检查 - ${selector}: ${element ? '存在' : '不存在'}`);
+    });
+    
     currentTheme = theme;
     localStorage.setItem('markdown-livesync-theme', theme);
     
-    // 切换GitHub样式表
+    // 等待样式表加载完成
     const lightTheme = document.getElementById('github-light-theme');
     const darkTheme = document.getElementById('github-dark-theme');
     
     // 检查样式表是否存在
     if (!lightTheme) {
       console.error('[主题] 错误: 找不到github-light-theme样式表');
+      // 尝试重新查找或创建
+      setTimeout(() => setTheme(theme), 100);
       return;
     }
     if (!darkTheme) {
       console.error('[主题] 错误: 找不到github-dark-theme样式表');
+      // 尝试重新查找或创建
+      setTimeout(() => setTheme(theme), 100);
       return;
     }
     
     console.log(`[主题] 找到样式表 - Light: ${lightTheme.href}, Dark: ${darkTheme.href}`);
-    
-    // 设置主题相关的CSS变量和样式表
-    if (theme === 'light') {
-      lightTheme.disabled = false;
-      darkTheme.disabled = true;
-      document.body.setAttribute('data-theme', 'light');
-      document.body.className = 'vscode-light';
-      console.log('[主题] 应用浅色主题');
-    } else if (theme === 'dark') {
-      lightTheme.disabled = true;
-      darkTheme.disabled = false;
-      document.body.setAttribute('data-theme', 'dark');
-      document.body.className = 'vscode-dark';
-      console.log('[主题] 应用深色主题');
-    } else if (theme === 'vscode') {
-      // VSCode主题：根据系统偏好自动选择
-      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-      lightTheme.disabled = prefersDark;
-      darkTheme.disabled = !prefersDark;
-      document.body.setAttribute('data-theme', prefersDark ? 'dark' : 'light');
-      document.body.className = prefersDark ? 'vscode-dark' : 'vscode-light';
-      console.log(`[主题] 应用VSCode主题 - 系统偏好: ${prefersDark ? '深色' : '浅色'}`);
-    }
-    
-    // 强制重新渲染样式
-    const tocContainer = document.querySelector('.toc-container');
-    if (tocContainer) {
-      tocContainer.style.display = 'none';
-      tocContainer.offsetHeight; // 触发重排
-      tocContainer.style.display = '';
-    }
-    
-    // 更新按钮图标
-    const themeBtn = document.querySelector('.toc-theme-toggle');
-    if (themeBtn) {
-      themeBtn.innerHTML = getThemeIcon(theme);
-      console.log(`[主题] 更新按钮图标: ${getThemeIcon(theme)}`);
-    }
-    
-    // 更新按钮文本（如果存在旧的theme-toggle按钮）
-    const themeToggle = document.querySelector('.theme-toggle');
-    if (themeToggle) {
-      themeToggle.textContent = getThemeDisplayName(theme);
-    }
-    
-    console.log(`[主题] 主题切换完成: ${getThemeDisplayName(theme)}`);
     console.log(`[主题] 当前样式表状态 - Light disabled: ${lightTheme.disabled}, Dark disabled: ${darkTheme.disabled}`);
-    console.log(`[主题] 当前body data-theme: ${document.body.getAttribute('data-theme')}`);
-    console.log(`[主题] 当前body className: ${document.body.className}`);
+    
+    // 确保样式表已加载
+    const ensureStylesheetLoaded = (stylesheet) => {
+      return new Promise((resolve) => {
+        if (stylesheet.sheet) {
+          resolve();
+        } else {
+          stylesheet.addEventListener('load', resolve);
+          // 添加超时保护
+          setTimeout(resolve, 1000);
+        }
+      });
+    };
+    
+    // 等待两个样式表都加载完成
+    Promise.all([
+      ensureStylesheetLoaded(lightTheme),
+      ensureStylesheetLoaded(darkTheme)
+    ]).then(() => {
+      console.log('[主题] 样式表加载完成，开始应用主题');
+      
+      // 设置主题相关的CSS变量和样式表
+      if (theme === 'light') {
+        // 浅色主题：启用浅色样式表，禁用深色样式表
+        lightTheme.disabled = false;
+        darkTheme.disabled = true;
+        
+        // 设置主题属性和类名
+        document.documentElement.setAttribute('data-theme', 'light');
+        document.body.setAttribute('data-theme', 'light');
+        document.body.className = 'vscode-light';
+        
+        console.log('[主题] 应用浅色主题');
+      } else if (theme === 'dark') {
+        // 深色主题：启用深色样式表，禁用浅色样式表
+        lightTheme.disabled = true;
+        darkTheme.disabled = false;
+        
+        // 设置主题属性和类名
+        document.documentElement.setAttribute('data-theme', 'dark');
+        document.body.setAttribute('data-theme', 'dark');
+        document.body.className = 'vscode-dark';
+        
+        console.log('[主题] 应用深色主题');
+      } else if (theme === 'vscode') {
+        // VSCode主题：根据系统偏好自动选择
+        const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+        
+        lightTheme.disabled = prefersDark;
+        darkTheme.disabled = !prefersDark;
+        
+        const actualTheme = prefersDark ? 'dark' : 'light';
+        const className = prefersDark ? 'vscode-dark' : 'vscode-light';
+        
+        // 设置主题属性和类名
+        document.documentElement.setAttribute('data-theme', actualTheme);
+        document.body.setAttribute('data-theme', actualTheme);
+        document.body.className = className;
+        
+        console.log(`[主题] 应用VSCode主题 - 系统偏好: ${prefersDark ? '深色' : '浅色'}`);
+      }
+      
+      // 强制重新渲染样式 - 确保所有元素都应用新主题
+      const tocContainer = document.querySelector('.toc-container');
+      if (tocContainer) {
+        tocContainer.style.display = 'none';
+        tocContainer.offsetHeight; // 触发重排
+        tocContainer.style.display = '';
+      }
+      
+      // 强制重新渲染markdown内容 - 关键修复
+      const markdownBody = document.querySelector('.markdown-body');
+      if (markdownBody) {
+        markdownBody.style.display = 'none';
+        markdownBody.offsetHeight; // 触发重排
+        markdownBody.style.display = '';
+        
+        // 强制重新计算样式
+        const computedStyle = window.getComputedStyle(markdownBody);
+        markdownBody.style.visibility = 'hidden';
+        markdownBody.offsetHeight;
+        markdownBody.style.visibility = 'visible';
+      }
+      
+      // 强制重新渲染整个容器
+      const container = document.querySelector('.container');
+      if (container) {
+        container.style.display = 'none';
+        container.offsetHeight; // 触发重排
+        container.style.display = 'flex';
+      }
+      
+      // 更新按钮图标
+      const themeBtn = document.querySelector('.toc-theme-toggle');
+      if (themeBtn) {
+        themeBtn.innerHTML = getThemeIcon(theme);
+        console.log(`[主题] 更新按钮图标: ${getThemeIcon(theme)}`);
+      }
+      
+      // 更新按钮文本（如果存在旧的theme-toggle按钮）
+      const themeToggle = document.querySelector('.theme-toggle');
+      if (themeToggle) {
+        themeToggle.textContent = getThemeDisplayName(theme);
+      }
+      
+      console.log(`[主题] 主题切换完成: ${getThemeDisplayName(theme)}`);
+      console.log(`[主题] 最终样式表状态 - Light disabled: ${lightTheme.disabled}, Dark disabled: ${darkTheme.disabled}`);
+      console.log(`[主题] 最终html data-theme: ${document.documentElement.getAttribute('data-theme')}`);
+      console.log(`[主题] 最终body data-theme: ${document.body.getAttribute('data-theme')}`);
+      console.log(`[主题] 最终body className: ${document.body.className}`);
+      
+      // 验证样式是否正确应用
+      setTimeout(() => {
+        const bodyStyle = window.getComputedStyle(document.body);
+        console.log(`[主题] 验证 - body背景色: ${bodyStyle.backgroundColor}`);
+        console.log(`[主题] 验证 - body文字色: ${bodyStyle.color}`);
+        
+        // 重新查询markdownBody元素（避免作用域问题）
+        const currentMarkdownBody = document.querySelector('.markdown-body');
+        if (currentMarkdownBody) {
+          const markdownBodyStyle = window.getComputedStyle(currentMarkdownBody);
+          console.log(`[主题] 验证 - markdown-body背景色: ${markdownBodyStyle.backgroundColor}`);
+          console.log(`[主题] 验证 - markdown-body文字色: ${markdownBodyStyle.color}`);
+        } else {
+          console.warn(`[主题] 警告 - .markdown-body元素不存在`);
+        }
+        
+        // 检查content-container是否存在
+        const contentContainer = document.querySelector('.content-container');
+        if (contentContainer) {
+          const containerStyle = window.getComputedStyle(contentContainer);
+          console.log(`[主题] 验证 - content-container背景色: ${containerStyle.backgroundColor}`);
+        } else {
+          console.warn(`[主题] 警告 - .content-container元素不存在`);
+        }
+        
+        // 检查GitHub样式是否正确应用
+        const h1Elements = document.querySelectorAll('.markdown-body h1');
+        const h2Elements = document.querySelectorAll('.markdown-body h2');
+        const tableElements = document.querySelectorAll('.markdown-body table');
+        
+        if (h1Elements.length > 0) {
+          const h1Style = window.getComputedStyle(h1Elements[0]);
+          console.log(`[主题] 验证 - H1边框: ${h1Style.borderBottom}`);
+        }
+        
+        if (h2Elements.length > 0) {
+          const h2Style = window.getComputedStyle(h2Elements[0]);
+          console.log(`[主题] 验证 - H2边框: ${h2Style.borderBottom}`);
+        }
+        
+        if (tableElements.length > 0) {
+          const tableStyle = window.getComputedStyle(tableElements[0]);
+          console.log(`[主题] 验证 - 表格边框: ${tableStyle.border}`);
+        }
+      }, 200);
+    });
   }
 
   /**
@@ -1302,6 +1483,15 @@
    */
   function applyConfig() {
     console.log('[配置] 应用新配置:', config);
+    
+    // 应用主题配置
+    if (config.theme && config.theme.current) {
+      const configTheme = config.theme.current;
+      if (configTheme !== currentTheme) {
+        console.log(`[配置] 主题配置变更: ${currentTheme} -> ${configTheme}`);
+        setTheme(configTheme);
+      }
+    }
     
     // 重新初始化目录状态
     if (config.toc) {

@@ -8,5 +8,5 @@ releases
 tests/**/*.md
 !tests/README.md
 docs/mermaid/*.md
-docs/examples/*.md
+docs/**/*.md
 !docs/mermaid/README.md
