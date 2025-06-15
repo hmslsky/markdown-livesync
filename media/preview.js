@@ -93,31 +93,100 @@
   function createTocHeaderControls() {
     const tocHeader = document.querySelector('.toc-header');
     if (!tocHeader) return;
-    let controls = tocHeader.querySelector('.toc-controls');
-    if (!controls) {
-      controls = document.createElement('div');
-      controls.className = 'toc-controls';
-      tocHeader.appendChild(controls);
-    }
-    controls.innerHTML = '';
-
-
-    // 2. 目录分级按钮（1/2/3级）
-    [1,2,3].forEach(level => {
+    
+    // 清空现有内容，重新构建布局
+    tocHeader.innerHTML = '';
+    
+    // 设置头部容器的flex布局样式
+    tocHeader.style.cssText = `
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 8px 12px;
+      border-bottom: 1px solid var(--vscode-panel-border);
+      background: var(--vscode-editor-background);
+    `;
+    
+    // 1. 左侧：TOC标题
+    const tocTitle = document.createElement('h3');
+    tocTitle.textContent = 'TOC';
+    tocTitle.style.cssText = `
+      margin: 0;
+      font-size: 19px;
+      font-weight: 750;
+      color: var(--vscode-editor-foreground);
+    `;
+    tocHeader.appendChild(tocTitle);
+    
+    // 2. 中间：功能按钮组容器
+    const middleControls = document.createElement('div');
+    middleControls.className = 'toc-middle-controls';
+    middleControls.style.cssText = `
+      display: flex;
+      align-items: center;
+      gap: 1px;
+      justify-content: center;
+      flex: 1;
+    `;
+    
+    // 2.1 分级展开按钮组
+    const levelControlsContainer = document.createElement('div');
+    levelControlsContainer.className = 'toc-level-controls';
+    levelControlsContainer.style.cssText = `
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    `;
+    
+    [1, 2, 3].forEach((level) => {
       const btn = document.createElement('button');
       btn.className = 'toc-level-control';
       btn.textContent = level;
       btn.title = `展开到${level}级标题`;
       btn.onclick = () => expandToLevel(level);
-      controls.appendChild(btn);
+      btn.style.cssText = `
+        background: rgba(214, 227, 227, 0.84);
+        border: 1px solid var(--vscode-panel-border);
+        color:rgb(23, 14, 14);
+        cursor: pointer;
+        padding: 2px 2px;
+        font-size: 12px;
+        min-width: 28px;
+        border-radius: 14px;
+        transition: all 0.2s ease;
+        font-weight: 500;
+      `;
+      
+      btn.addEventListener('mouseenter', () => {
+        btn.style.backgroundColor = 'rgba(133, 140, 140, 0.84)';
+        btn.style.transform = 'scale(1.08)';
+      });
+      
+      btn.addEventListener('mouseleave', () => {
+        btn.style.backgroundColor = 'rgba(214, 227, 227, 0.84)';
+        btn.style.transform = 'scale(1)';
+      });
+      
+      levelControlsContainer.appendChild(btn);
     });
-
-    // 3. 全部展开/收起按钮
+    
+    middleControls.appendChild(levelControlsContainer);
+    
+    // 2.2 全部展开/收起按钮
     const expandCollapseBtn = document.createElement('button');
     expandCollapseBtn.className = 'toc-expand-collapse';
     expandCollapseBtn.title = '全部展开/收起';
     let expanded = true;
     expandCollapseBtn.innerHTML = expanded ? '📂' : '📁';
+    expandCollapseBtn.style.cssText = `
+      background: transparent;
+      border: none;
+      cursor: pointer;
+      padding: 4px;
+      font-size: 16px;
+      transition: opacity 0.2s ease;
+      color: var(--vscode-foreground);
+    `;
     expandCollapseBtn.onclick = function() {
       expanded = !expanded;
       if (expanded) {
@@ -128,14 +197,31 @@
         expandCollapseBtn.innerHTML = '📁';
       }
     };
-    controls.appendChild(expandCollapseBtn);
-
-
-    // 1. 主题切换按钮
+    
+    expandCollapseBtn.addEventListener('mouseenter', () => {
+      expandCollapseBtn.style.opacity = '0.7';
+    });
+    
+    expandCollapseBtn.addEventListener('mouseleave', () => {
+      expandCollapseBtn.style.opacity = '1';
+    });
+    
+    middleControls.appendChild(expandCollapseBtn);
+    
+    // 2.3 主题切换按钮
     const themeBtn = document.createElement('button');
     themeBtn.className = 'toc-theme-toggle';
     themeBtn.title = '切换主题 (vscode/light/dark)';
     themeBtn.innerHTML = getThemeIcon(currentTheme);
+    themeBtn.style.cssText = `
+      background: transparent;
+      border: none;
+      cursor: pointer;
+      padding: 4px;
+      font-size: 16px;
+      transition: opacity 0.2s ease;
+      color: var(--vscode-foreground);
+    `;
     themeBtn.onclick = function() {
       const themes = ['vscode', 'light', 'dark'];
       const idx = themes.indexOf(currentTheme);
@@ -143,18 +229,47 @@
       setTheme(next);
       themeBtn.innerHTML = getThemeIcon(next);
     };
-    controls.appendChild(themeBtn);
-
-    // 4. 关闭按钮
+    
+    themeBtn.addEventListener('mouseenter', () => {
+      themeBtn.style.opacity = '0.7';
+    });
+    
+    themeBtn.addEventListener('mouseleave', () => {
+      themeBtn.style.opacity = '1';
+    });
+    
+    middleControls.appendChild(themeBtn);
+    
+    tocHeader.appendChild(middleControls);
+    
+    // 3. 右侧：关闭按钮
     const closeBtn = document.createElement('button');
     closeBtn.className = 'toc-close-btn';
     closeBtn.title = '关闭目录';
-    closeBtn.innerHTML = '⚔︎';
+    closeBtn.innerHTML = '✕';
+    closeBtn.style.cssText = `
+      background: transparent;
+      border: none;
+      cursor: pointer;
+      padding: 4px 6px;
+      font-size: 17px;
+      color:rgb(27, 25, 25);
+      transition: opacity 0.2s ease;
+    `;
     closeBtn.onclick = function() {
       document.querySelector('.toc-container').classList.add('toc-closed');
       showTocFloatingIcon();
     };
-    controls.appendChild(closeBtn);
+    
+    closeBtn.addEventListener('mouseenter', () => {
+      closeBtn.style.opacity = '0.7';
+    });
+    
+    closeBtn.addEventListener('mouseleave', () => {
+      closeBtn.style.opacity = '1';
+    });
+    
+    tocHeader.appendChild(closeBtn);
   }
 
   /**
@@ -831,7 +946,7 @@
         left: 0;
         right: 0;
         height: 2px;
-        background-color: var(--list-active-background);
+        background-color: var(--vscode-list-activeSelectionBackground);
         opacity: 0.8;
         z-index: 1000;
         animation: fadeOut 2s ease-out forwards;
@@ -898,10 +1013,7 @@
     // 初始化目录状态
     initializeTocState();
     
-    // 初始化智能展开控制
-    initializeSmartTocControls();
-    
-    // 创建目录头部控制按钮
+    // 创建目录头部控制按钮（包含智能控制功能）
     createTocHeaderControls();
   }
 
@@ -1025,113 +1137,6 @@
     tocItems.forEach(item => {
       expandTocItem(item.dataset.id);
     });
-  }
-
-  /**
-   * 初始化智能目录控制
-   */
-  function initializeSmartTocControls() {
-    const tocHeader = document.querySelector('.toc-header');
-    if (!tocHeader) return;
-    
-    // 分析文档中的标题层级
-    const availableLevels = analyzeTocLevels();
-    
-    // 创建智能控制按钮
-    createSmartTocControls(tocHeader, availableLevels);
-  }
-
-  /**
-   * 分析目录中的标题层级
-   */
-  function analyzeTocLevels() {
-    const tocItems = document.querySelectorAll('.toc-item[data-level]');
-    const levels = new Set();
-    
-    tocItems.forEach(item => {
-      const level = parseInt(item.dataset.level);
-      if (level >= 1 && level <= 6) {
-        levels.add(level);
-      }
-    });
-    
-    const sortedLevels = Array.from(levels).sort((a, b) => a - b);
-    console.log('[目录] 检测到的标题层级:', sortedLevels);
-    
-    return sortedLevels;
-  }
-
-  /**
-   * 创建智能目录控制按钮
-   */
-  function createSmartTocControls(tocHeader, availableLevels) {
-    // 查找现有的控制区域
-    let controlsContainer = tocHeader.querySelector('.toc-controls');
-    
-    if (!controlsContainer) {
-      controlsContainer = document.createElement('div');
-      controlsContainer.className = 'toc-controls';
-      tocHeader.appendChild(controlsContainer);
-    }
-    
-    // 清除现有的分级控制按钮
-    const existingLevelButtons = controlsContainer.querySelectorAll('.toc-level-control');
-    existingLevelButtons.forEach(btn => btn.remove());
-    // let existingLevelButtonsDiv = controlsContainer.querySelectorAll('.toc-level-controls');
-    // existingLevelButtonsDiv.remove()
-
-    // 创建分级展开按钮
-    if (availableLevels.length > 1) {
-      const levelControlsContainer = document.createElement('div');
-      levelControlsContainer.className = 'toc-level-controls';
-      levelControlsContainer.style.cssText = `
-        display: flex;
-        gap: 2px;
-        margin-left: 2px;
-      `;
-      
-      availableLevels.forEach(level => {
-        const button = document.createElement('button');
-        button.className = 'toc-level-control';
-        button.dataset.level = level.toString();
-        button.textContent = level.toString();
-        button.title = `展开到${level}级标题`;
-        button.style.cssText = `
-          background: var(--button-background);
-          border: 1px solid var(--border-color);
-          color: var(--button-foreground);
-          cursor: pointer;
-          padding: 2px 6px;
-          border-radius: 2px;
-          font-size: 12px;
-          min-width: 20px;
-          transition: all 0.2s ease;
-        `;
-        
-        button.addEventListener('click', (e) => {
-          e.preventDefault();
-          expandToLevel(level);
-        });
-        
-        button.addEventListener('mouseenter', () => {
-          button.style.backgroundColor = 'var(--button-hover-background)';
-        });
-        
-        button.addEventListener('mouseleave', () => {
-          button.style.backgroundColor = 'var(--button-background)';
-        });
-        
-        levelControlsContainer.appendChild(button);
-      });
-      
-      // 插入到现有控制按钮之前
-      const firstButton = controlsContainer.querySelector('button');
-      if (firstButton) {
-        controlsContainer.insertBefore(levelControlsContainer, firstButton);
-      } else {
-        controlsContainer.appendChild(levelControlsContainer);
-      }
-    }
   }
 
   /**
@@ -1277,7 +1282,7 @@
       width: 100vw;
       height: 100vh;
       z-index: 9999;
-      background: var(--background-color);
+      background: var(--vscode-editor-background);
     `;
   }
 
@@ -1338,7 +1343,7 @@
     if (tocContent && toc) {
       tocContent.innerHTML = toc;
       initializeTocState();
-      initializeSmartTocControls(); // 重新初始化智能控制
+      createTocHeaderControls(); // 重新创建头部控件（包含智能控制）
     }
     
     // 重新初始化

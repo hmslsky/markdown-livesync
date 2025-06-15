@@ -471,7 +471,7 @@ export class ConfigurationManager {
       toc: {
         enabled: config.get('toc.enabled', true),
         showToggleButton: config.get('toc.showToggleButton', true),
-        defaultCollapseLevel: config.get('toc.defaultCollapseLevel', 2),
+        defaultCollapseLevel: config.get('toc.defaultCollapseLevel', 1),
         autoExpandCurrent: config.get('toc.autoExpandCurrent', true),
         position: config.get('toc.position', 'right'),
         width: config.get('toc.width', 280)
