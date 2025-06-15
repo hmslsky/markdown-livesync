@@ -1601,11 +1601,11 @@
     scrollToLine(line);
     
     // 然后静默同步编辑器（不抢夺焦点）
-    vscode.postMessage({ 
-      type: 'toc-click', 
-      line: line - 1, // 转换为0基索引
-      silent: true // 添加静默标志
-    });
+    // vscode.postMessage({ 
+    //   type: 'toc-click', 
+    //   line: line - 1, // 转换为0基索引
+    //   silent: true // 添加静默标志
+    // });
     
     // 如果是浮动目录，点击后隐藏
     if (tocFloating && tocVisible) {

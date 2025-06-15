@@ -86,6 +86,17 @@ export class MarkdownPreviewPanel {
   private webviewReady: boolean = false;
 
   /**
+   * 是否正在从预览同步到编辑器
+   * 防止双向同步循环的标志
+   */
+  private isSyncingFromPreview: boolean = false;
+
+  /**
+   * 同步锁定超时定时器
+   */
+  private syncLockTimeout: NodeJS.Timeout | undefined;
+
+  /**
    * 私有构造函数
    * 
    * 单例模式实现，初始化所有依赖的服务实例
@@ -319,11 +330,13 @@ export class MarkdownPreviewPanel {
       // 生成目录结构
       const toc = this.tocProvider.generateToc(this.currentDocument);
 
+      // 无论是首次加载还是增量更新，都要更新标题
+      this.panel.title = `Markdown Preview: ${path.basename(this.currentDocument.fileName)}`;
+
       if (!this.webviewReady) {
         // 首次加载：设置完整的WebView HTML内容
         const webviewHtml = this.getWebviewContent(html, toc);
         this.panel.webview.html = webviewHtml;
-        this.panel.title = `Markdown Preview: ${path.basename(this.currentDocument.fileName)}`;
       } else {
         // 增量更新：发送内容更新消息到前端
         this.panel.webview.postMessage({ type: 'update-content', html, toc: this.tocProvider.renderToc(toc) });
@@ -679,6 +692,14 @@ export class MarkdownPreviewPanel {
     try {
       this.logger.debug(`[同步编辑器无焦点] 尝试同步到第${line + 1}行`);
       
+      // 设置同步标志，防止编辑器事件触发反向同步
+      this.isSyncingFromPreview = true;
+      
+      // 清除之前的超时定时器
+      if (this.syncLockTimeout) {
+        clearTimeout(this.syncLockTimeout);
+      }
+      
       const position = new vscode.Position(line, 0);
       const selection = new vscode.Selection(position, position);
       
@@ -695,9 +716,29 @@ export class MarkdownPreviewPanel {
       }
       
       this.logger.debug(`[同步编辑器无焦点] 成功同步到第${line + 1}行`);
+      
+      // 设置超时清除同步标志，防止标志永久锁定
+      this.syncLockTimeout = setTimeout(() => {
+        this.isSyncingFromPreview = false;
+        this.logger.debug('[同步编辑器无焦点] 同步锁定已解除');
+      }, 200); // 200ms后解除锁定
+      
     } catch (error) {
       this.logger.error('[同步编辑器无焦点] 同步失败: ' + (error instanceof Error ? error.message : String(error)));
+      // 发生错误时也要解除锁定
+      this.isSyncingFromPreview = false;
     }
+  }
+
+  /**
+   * 检查是否正在从预览同步到编辑器
+   * 
+   * 供外部模块检查同步状态，避免双向同步循环
+   * 
+   * @returns 是否正在同步
+   */
+  public isSyncingFromPreviewToEditor(): boolean {
+    return this.isSyncingFromPreview;
   }
 
   /**
@@ -773,10 +814,17 @@ export class MarkdownPreviewPanel {
    * 释放资源
    */
   public dispose(): void {
+    // 清理同步锁定定时器
+    if (this.syncLockTimeout) {
+      clearTimeout(this.syncLockTimeout);
+      this.syncLockTimeout = undefined;
+    }
+    
     this.disposables.forEach(disposable => disposable.dispose());
     this.disposables = [];
     this.panel = undefined;
     this.currentDocument = undefined;
     this.webviewReady = false;
+    this.isSyncingFromPreview = false;
   }
 } 

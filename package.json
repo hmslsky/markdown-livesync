@@ -27,10 +27,6 @@
         "title": "Markdown LiveSync: Preview"
       },
       {
-        "command": "markdown-livesync.openPreviewToSide",
-        "title": "Markdown LiveSync: Preview in Side"
-      },
-      {
         "command": "markdown-livesync.toggleDebugTools",
         "title": "Markdown LiveSync: Toggle Debug Tools"
       }

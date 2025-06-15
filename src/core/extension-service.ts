@@ -265,6 +265,12 @@ export class Extension {
       if (event.textEditor.document.languageId === 'markdown') {
         const panel = MarkdownPreviewPanel.getInstance();
         if (panel.isCurrentDocument(event.textEditor.document)) {
+          // 检查是否正在从预览同步到编辑器，避免双向同步循环
+          if (panel.isSyncingFromPreviewToEditor()) {
+            Logger.debug('[光标监听] 跳过同步 - 正在从预览同步到编辑器');
+            return;
+          }
+          
           const position = event.selections[0].active;
           Logger.debug(`[光标监听] 编辑器光标变化: 第${position.line + 1}行 第${position.character + 1}列`);
           
@@ -285,6 +291,12 @@ export class Extension {
       if (event.textEditor.document.languageId === 'markdown') {
         const panel = MarkdownPreviewPanel.getInstance();
         if (panel.isCurrentDocument(event.textEditor.document)) {
+          // 检查是否正在从预览同步到编辑器，避免双向同步循环
+          if (panel.isSyncingFromPreviewToEditor()) {
+            Logger.debug('[滚动监听] 跳过同步 - 正在从预览同步到编辑器');
+            return;
+          }
+          
           // 清除之前的防抖定时器
           if (syncTimeout) {
             clearTimeout(syncTimeout);
