@@ -784,6 +784,14 @@ export class MarkdownPreviewPanel {
   }
 
   /**
+   * 检查调试工具是否可见
+   * @returns 调试工具是否可见
+   */
+  public isDebugToolsVisible(): boolean {
+    return this.debugToolsVisible;
+  }
+
+  /**
    * 配置变更处理
    */
   public onConfigurationChanged(): void {

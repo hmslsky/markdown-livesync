@@ -437,8 +437,44 @@ export class Extension {
    */
   private toggleDebugTools(): void {
     const panel = MarkdownPreviewPanel.getInstance();
-    if (panel.isVisible()) {
+    
+    // 检查预览面板是否可见
+    if (!panel.isVisible()) {
+      // 如果预览面板未打开，提示用户并尝试打开预览
+      vscode.window.showInformationMessage(
+        '调试工具需要先打开预览面板，是否现在打开？',
+        '打开预览', '取消'
+      ).then(selection => {
+        if (selection === '打开预览') {
+          this.openPreviewToSide().then(() => {
+            // 预览打开后，再次尝试切换调试工具
+            setTimeout(() => {
+              const panel = MarkdownPreviewPanel.getInstance();
+              if (panel.isVisible()) {
+                panel.toggleDebugTools();
+                const status = panel.isDebugToolsVisible() ? '已显示' : '已隐藏';
+                vscode.window.showInformationMessage(`调试工具${status}`);
+              }
+            }, 500); // 等待预览面板完全加载
+          });
+        }
+      });
+      return;
+    }
+    
+    try {
+      // 切换调试工具状态
       panel.toggleDebugTools();
+      
+      // 提供用户反馈
+      const status = panel.isDebugToolsVisible() ? '已显示' : '已隐藏';
+      vscode.window.showInformationMessage(`调试工具${status}`);
+      
+      Logger.info(`调试工具${status}`);
+    } catch (error) {
+      const errorMsg = '切换调试工具失败: ' + (error instanceof Error ? error.message : String(error));
+      Logger.error(errorMsg);
+      vscode.window.showErrorMessage(errorMsg);
     }
   }
 

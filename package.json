@@ -27,6 +27,10 @@
         "title": "Markdown LiveSync: Preview"
       },
       {
+        "command": "markdown-livesync.openPreviewToSide",
+        "title": "Markdown LiveSync: Preview to Side"
+      },
+      {
         "command": "markdown-livesync.toggleDebugTools",
         "title": "Markdown LiveSync: Toggle Debug Tools"
       }
@@ -37,9 +41,7 @@
           "when": "editorLangId == markdown",
           "command": "markdown-livesync.openPreview",
           "group": "navigation"
-        }
-      ],
-      "editor/title": [
+        },
         {
           "when": "editorLangId == markdown",
           "command": "markdown-livesync.openPreviewToSide",

@@ -479,8 +479,8 @@ export class ConfigurationManager {
       
       // 主题配置加载
       theme: {
-        current: config.get('theme.current', 'vscode'),
-        followVSCode: config.get('theme.followVSCode', true),
+        current: config.get('theme.current', 'light'),
+        followVSCode: config.get('theme.followVSCode', false),
         custom: {
           // 浅色主题自定义颜色
           light: {
@@ -680,8 +680,8 @@ export class ConfigurationManager {
         width: 280
       },
       theme: {
-        current: 'vscode',
-        followVSCode: true,
+        current: 'light',
+        followVSCode: false,
         custom: {
           light: {
             textColor: '#24292e',

@@ -32,12 +32,11 @@
   
   /**
    * 当前激活的主题名称
-   * 可选值：'vscode' | 'light' | 'dark'
-   * - 'vscode': 跟随VSCode编辑器主题（自动检测系统偏好）
+   * 可选值：'light' | 'dark'
    * - 'light': 强制使用浅色主题
    * - 'dark': 强制使用深色主题
    */
-  let currentTheme = 'vscode';
+  let currentTheme = 'light';
 
   // ==================== 主题系统初始化 ====================
 
@@ -126,9 +125,9 @@
        * 优先级顺序：
        * 1. 插件配置中的主题设置（config.theme.current）
        * 2. localStorage中保存的用户偏好
-       * 3. 默认值：'vscode'（跟随VSCode主题）
+       * 3. 默认值：'light'
        */
-      let initialTheme = 'vscode'; // 默认使用vscode主题
+      let initialTheme = 'light'; // 默认使用light主题
       
       if (config && config.theme && config.theme.current) {
         // 优先使用插件配置中的主题设置
@@ -152,8 +151,8 @@
       
       console.log('[主题] 主题系统初始化完成');
       
-      // 创建目录头部控制按钮（包含主题切换按钮）
-      createTocHeaderControls();
+      // 移除重复的createTocHeaderControls()调用
+      // 目录头部控件将在initializeToc()中统一创建
     });
   }
 
@@ -163,6 +162,19 @@
   function createTocHeaderControls() {
     const tocHeader = document.querySelector('.toc-header');
     if (!tocHeader) return;
+    
+    // 检查是否已经创建了完整的头部控件
+    // 如果已存在TOC标题和控制按钮，则跳过重复创建
+    const existingTitle = tocHeader.querySelector('h3');
+    const existingControls = tocHeader.querySelector('.toc-middle-controls');
+    const existingCloseBtn = tocHeader.querySelector('.toc-close-btn');
+    
+    if (existingTitle && existingControls && existingCloseBtn) {
+      console.log('[目录] 头部控件已存在，跳过重复创建');
+      return;
+    }
+    
+    console.log('[目录] 创建目录头部控制按钮');
     
     // 清空现有内容，重新构建布局
     tocHeader.innerHTML = '';
@@ -390,7 +402,6 @@
    * 9. 验证样式应用效果
    * 
    * 支持的主题类型：
-   * - 'vscode': 跟随VSCode编辑器主题，自动检测系统偏好
    * - 'light': 强制使用浅色主题（GitHub Light）
    * - 'dark': 强制使用深色主题（GitHub Dark）
    * 
