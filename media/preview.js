@@ -211,7 +211,7 @@
       flex: 1;
     `;
     
-    // 2.1 分级展开按钮组
+    // 2.1 分级展开按钮组 - 根据实际目录级别动态生成
     const levelControlsContainer = document.createElement('div');
     levelControlsContainer.className = 'toc-level-controls';
     levelControlsContainer.style.cssText = `
@@ -220,7 +220,13 @@
       gap: 6px;
     `;
     
-    [1, 2, 3].forEach((level) => {
+    // 获取当前文档的最大目录级别
+    const maxLevel = getMaxTocLevel();
+    console.log(`[目录] 检测到最大目录级别: ${maxLevel}`);
+    
+    // 只生成到最大级别-1的按钮（因为最后一级不需要展开按钮）
+    const buttonLevels = Math.max(1, maxLevel - 1);
+    for (let level = 1; level <= buttonLevels; level++) {
       const btn = document.createElement('button');
       btn.className = 'toc-level-control';
       btn.textContent = level;
@@ -250,7 +256,7 @@
       });
       
       levelControlsContainer.appendChild(btn);
-    });
+    }
     
     middleControls.appendChild(levelControlsContainer);
     
@@ -951,15 +957,24 @@
         
         console.log(`[滚动同步] IntersectionObserver回调 - ${entries.length}个条目`);
         
+        // 遍历所有交叉观察条目
         entries.forEach(entry => {
+          // 只处理当前可见的元素
           if (entry.isIntersecting) {
+            // 获取元素的位置信息
             const rect = entry.boundingClientRect;
+            // 从data-source-line属性获取对应的源代码行号
             const sourceLine = entry.target.dataset.sourceLine;
+            // 记录可见元素的详细信息，用于调试
             console.log(`[滚动同步] 可见元素: ${entry.target.tagName} line=${sourceLine} top=${rect.top.toFixed(2)}`);
             
-            // 选择最接近视口顶部的元素
-            if (rect.top >= -50 && rect.top < minTop) { // 允许一定的负值容差
-              minTop = rect.top;
+            // 计算元素中心点到视口顶部的距离
+            const elementCenter = rect.top + rect.height / 2;
+            const distanceToTop = Math.abs(elementCenter);
+            
+            // 选择中心点最接近视口顶部的元素
+            if (distanceToTop < minTop) {
+              minTop = distanceToTop;
               topVisibleElement = entry.target;
             }
           }
@@ -1236,54 +1251,42 @@
    * 滚动到指定行号对应的内容
    */
   function scrollToLine(line) {
-    // 首先尝试通过data-source-line属性查找对应的元素
-    const targetElement = document.querySelector(`[data-source-line="${line}"]`);
+    console.log(`[目录] 滚动到第${line}行`);
     
-    if (targetElement) {
-      // 滚动到目标元素位置
-      targetElement.scrollIntoView({
-        behavior: 'smooth',
-        block: 'start'
-      });
-      
-      // 添加临时高亮效果
-      targetElement.classList.add('highlight-target');
-      setTimeout(() => {
-        targetElement.classList.remove('highlight-target');
-      }, 2000);
-      
-      console.log(`[目录] 滚动到第${line}行元素: ${targetElement.tagName}`);
-      return;
-    }
+    // 查找目标元素的策略：
+    // 1. 优先查找精确匹配的标题元素
+    // 2. 如果没有，查找最接近的元素
+    // 3. 最后尝试通过锚点滚动
     
-    // 如果没找到精确匹配，尝试查找标题元素
-    const headings = document.querySelectorAll('h1, h2, h3, h4, h5, h6');
-    let targetHeading = null;
-    let bestMatch = null;
-    let minDistance = Infinity;
+    let finalTarget = null;
     
-    // 遍历所有标题，找到最接近的标题
-    for (let i = 0; i < headings.length; i++) {
-      const heading = headings[i];
-      const headingLine = parseInt(heading.getAttribute('data-source-line'));
+    // 策略1：查找精确匹配的标题元素
+    const exactMatch = document.querySelector(`h1[data-source-line="${line}"], h2[data-source-line="${line}"], h3[data-source-line="${line}"], h4[data-source-line="${line}"], h5[data-source-line="${line}"], h6[data-source-line="${line}"]`);
+    if (exactMatch) {
+      finalTarget = exactMatch;
+      console.log(`[目录] 找到精确匹配的标题: ${finalTarget.textContent}`);
+    } else {
+      // 策略2：查找最接近的元素
+      const allElements = document.querySelectorAll('[data-source-line]');
+      let closestElement = null;
+      let minDistance = Infinity;
       
-      if (headingLine) {
-        const distance = Math.abs(headingLine - line);
+      allElements.forEach(element => {
+        const elementLine = parseInt(element.getAttribute('data-source-line'));
+        if (elementLine > line) return;
+        const distance = Math.abs(elementLine - line);
+        
         if (distance < minDistance) {
           minDistance = distance;
-          bestMatch = heading;
+          closestElement = element;
         }
-        
-        // 如果找到精确匹配，直接使用
-        if (headingLine === line) {
-          targetHeading = heading;
-          break;
-        }
+      });
+      
+      if (closestElement) {
+        finalTarget = closestElement;
+        console.log(`[目录] 找到最接近的元素: ${finalTarget.tagName} (距离${minDistance}行)`);
       }
     }
-    
-    // 使用最佳匹配或精确匹配
-    const finalTarget = targetHeading || bestMatch;
     
     if (finalTarget) {
       // 滚动到标题位置
@@ -1291,6 +1294,14 @@
         behavior: 'smooth',
         block: 'start'
       });
+
+      // 向上滚动100px，提供更好的阅读体验
+      const currentScroll = finalTarget.scrollY;
+      finalTarget.scrollTo({
+        top: currentScroll - 100,
+        behavior: 'smooth'
+      });
+      console.log('[目录] 向上滚动100px');
       
       // 添加临时高亮效果
       finalTarget.classList.add('highlight-target');
@@ -1540,6 +1551,24 @@
   }
 
   /**
+   * 获取当前文档的最大目录级别
+   */
+  function getMaxTocLevel() {
+    const tocItems = document.querySelectorAll('.toc-item[data-level]');
+    let maxLevel = 1;
+    
+    tocItems.forEach(item => {
+      const level = parseInt(item.dataset.level);
+      if (level > maxLevel) {
+        maxLevel = level;
+      }
+    });
+    
+    console.log(`[目录] 文档最大目录级别: ${maxLevel}`);
+    return maxLevel;
+  }
+
+  /**
    * 展开到指定层级
    */
   function expandToLevel(targetLevel) {
@@ -1575,30 +1604,55 @@
       previousActive.classList.remove('active');
     }
     
-    // 查找对应的目录项
+    // 查找对应的目录项 - 改进算法，确保高亮准确性
     const tocLinks = document.querySelectorAll('.toc-link[data-line]');
     let activeItem = null;
+    let bestMatch = null;
+    let minDistance = Infinity;
     
-    for (let i = tocLinks.length - 1; i >= 0; i--) {
-      const link = tocLinks[i];
+    // 找到最接近且不大于当前行号的标题
+    tocLinks.forEach(link => {
       const linkLine = parseInt(link.dataset.line);
       
+      // 只考虑行号小于等于当前行的标题
       if (linkLine <= line) {
-        activeItem = link.closest('.toc-item');
-        break;
+        const distance = line - linkLine;
+        
+        // 选择距离最小的标题作为最佳匹配
+        if (distance < minDistance) {
+          minDistance = distance;
+          bestMatch = link;
+        }
       }
-    }
+    });
     
-    if (activeItem) {
-      activeItem.classList.add('active');
+    if (bestMatch) {
+      activeItem = bestMatch.closest('.toc-item');
       
-      // 确保活动项可见，使用instant滚动减少延迟
-      activeItem.scrollIntoView({
-        behavior: 'instant', // 改为instant减少延迟
-        block: 'nearest'
-      });
-      
-      console.log(`[目录] 高亮目录项: line=${line}`);
+      if (activeItem) {
+        activeItem.classList.add('active');
+        
+        // 确保活动项在目录中可见
+        const tocContent = document.querySelector('.toc-content');
+        if (tocContent && activeItem) {
+          // 计算目录项在容器中的位置
+          const containerRect = tocContent.getBoundingClientRect();
+          const itemRect = activeItem.getBoundingClientRect();
+          
+          // 如果目录项不在可视区域内，滚动到合适位置
+          if (itemRect.top < containerRect.top || itemRect.bottom > containerRect.bottom) {
+            activeItem.scrollIntoView({
+              behavior: 'smooth',
+              block: 'center' // 居中显示，提供更好的上下文
+            });
+          }
+        }
+        
+        const activeLine = parseInt(bestMatch.dataset.line);
+        console.log(`[目录] 高亮目录项: line=${activeLine} (当前预览行=${line})`);
+      }
+    } else {
+      console.log(`[目录] 未找到合适的目录项进行高亮 (当前预览行=${line})`);
     }
   }
 

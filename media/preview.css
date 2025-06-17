@@ -335,17 +335,18 @@ html, body {
 
 /* 标题高亮效果 */
 .highlight-target {
-  background-color: #fff3cd !important;
-  border-left: 4px solid #ffc107 !important;
+  border-left: 4px solid #c1d0cf !important;
   padding-left: 12px !important;
   margin-left: -16px !important;
   transition: all 0.3s ease !important;
-  border-radius: 4px !important;
+  background-color: #eaf4f3 !important;
+  box-shadow: 0 2px 8px rgba(255, 193, 7, 0.2) !important;
 }
 
-/* 深色主题下的标题高亮 */
-[data-theme="dark"] .highlight-target {
-  background-color: #332701 !important;
-  border-left-color: #ffc107 !important;
+@media (prefers-color-scheme: dark) {
+  .highlight-target {
+    border-left-color: #c1d0cf !important;
+    box-shadow: 0 2px 8px rgba(255, 179, 0, 0.1) !important;
+  }
 }
 
