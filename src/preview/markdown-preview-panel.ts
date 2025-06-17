@@ -399,23 +399,44 @@ export class MarkdownPreviewPanel {
 
     // 获取资源URI（确保安全访问）
     const styleUri = this.panel!.webview.asWebviewUri(
-      vscode.Uri.file(path.join(__dirname, '..', '..', 'media', 'preview.css'))
+      vscode.Uri.file(path.join(__dirname, '..', '..', 'media', 'css', 'preview.css'))
     );
     
     const tocStyleUri = this.panel!.webview.asWebviewUri(
-      vscode.Uri.file(path.join(__dirname, '..', '..', 'media', 'toc.css'))
+      vscode.Uri.file(path.join(__dirname, '..', '..', 'media', 'css', 'toc.css'))
     );
     
     const githubLightUri = this.panel!.webview.asWebviewUri(
-      vscode.Uri.file(path.join(__dirname, '..', '..', 'media', 'github-markdown-light.css'))
+      vscode.Uri.file(path.join(__dirname, '..', '..', 'media', 'css', 'github-markdown-light.css'))
     );
     
     const githubDarkUri = this.panel!.webview.asWebviewUri(
-      vscode.Uri.file(path.join(__dirname, '..', '..', 'media', 'github-markdown-dark.css'))
+      vscode.Uri.file(path.join(__dirname, '..', '..', 'media', 'css', 'github-markdown-dark.css'))
+    );
+    
+    // 模块化JS文件引用
+    const themeManagerUri = this.panel!.webview.asWebviewUri(
+      vscode.Uri.file(path.join(__dirname, '..', '..', 'media', 'js', 'theme-manager.js'))
+    );
+    
+    const tocManagerUri = this.panel!.webview.asWebviewUri(
+      vscode.Uri.file(path.join(__dirname, '..', '..', 'media', 'js', 'toc-manager.js'))
+    );
+    
+    const scrollSyncManagerUri = this.panel!.webview.asWebviewUri(
+      vscode.Uri.file(path.join(__dirname, '..', '..', 'media', 'js', 'scroll-sync.js'))
+    );
+    
+    const mermaidManagerUri = this.panel!.webview.asWebviewUri(
+      vscode.Uri.file(path.join(__dirname, '..', '..', 'media', 'js', 'mermaid-manager.js'))
+    );
+    
+    const codeBlocksManagerUri = this.panel!.webview.asWebviewUri(
+      vscode.Uri.file(path.join(__dirname, '..', '..', 'media', 'js', 'code-blocks.js'))
     );
     
     const scriptUri = this.panel!.webview.asWebviewUri(
-      vscode.Uri.file(path.join(__dirname, '..', '..', 'media', 'preview.js'))
+      vscode.Uri.file(path.join(__dirname, '..', '..', 'media', 'js', 'preview.js'))
     );
 
     const mermaidUri = this.panel!.webview.asWebviewUri(
@@ -439,7 +460,15 @@ export class MarkdownPreviewPanel {
         // 传递配置到前端
         window.markdownLiveSyncConfig = ${JSON.stringify(config)};
     </script>
+    <!-- 依赖库 -->
     <script nonce="${nonce}" src="${mermaidUri}"></script>
+    <!-- 功能模块 -->
+    <script nonce="${nonce}" src="${themeManagerUri}"></script>
+    <script nonce="${nonce}" src="${tocManagerUri}"></script>
+    <script nonce="${nonce}" src="${scrollSyncManagerUri}"></script>
+    <script nonce="${nonce}" src="${mermaidManagerUri}"></script>
+    <script nonce="${nonce}" src="${codeBlocksManagerUri}"></script>
+    <!-- 主入口脚本 -->
     <script nonce="${nonce}" src="${scriptUri}"></script>
 </head>
 <body class="${initialBodyClass}" data-theme="${initialTheme}">
