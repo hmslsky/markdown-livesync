@@ -44,51 +44,60 @@
    * 初始化主题系统和目录控件
    * 
    * 主题系统初始化流程：
-   * 1. 等待DOM和CSS样式表完全加载
-   * 2. 确定初始主题（优先级：配置 > localStorage > 默认值）
-   * 3. 应用初始主题设置
-   * 4. 设置系统主题变化监听器
-   * 5. 创建目录头部控制按钮
+   * 1. 立即应用配置中的主题，避免初始闪烁
+   * 2. 等待样式表完全加载后确认主题设置
+   * 3. 创建目录头部控制按钮
    * 
-   * 样式表加载策略：
-   * - 使用Promise.all确保所有样式表都已加载
-   * - 添加超时保护机制，避免无限等待
-   * - 通过stylesheet.sheet属性检测加载状态
+   * 优化策略：
+   * - 先应用主题再等待样式表，减少视觉闪烁
+   * - 简化加载检测逻辑，提高初始化速度
+   * - 移除不必要的系统主题监听
    */
   function initializeThemeAndToc() {
     console.log('[主题] 开始初始化主题系统');
     
+    // 1. 立即确定并应用初始主题，避免闪烁
+    let initialTheme = 'light'; // 默认使用light主题
+    
+    if (config && config.theme && config.theme.current) {
+      // 优先使用插件配置中的主题设置
+      initialTheme = config.theme.current;
+      console.log(`[主题] 使用配置中的主题: ${initialTheme}`);
+    } else {
+      // 其次使用localStorage中保存的用户偏好
+      const savedTheme = localStorage.getItem('markdown-livesync-theme');
+      if (savedTheme) {
+        initialTheme = savedTheme;
+        console.log(`[主题] 使用localStorage中的主题: ${initialTheme}`);
+      } else {
+        console.log(`[主题] 使用默认主题: ${initialTheme}`);
+      }
+    }
+    
+    // 2. 立即应用初始主题，减少闪烁
+    setTheme(initialTheme);
+    console.log(`[主题] 已立即应用初始主题: ${initialTheme}`);
+
     /**
-     * 等待GitHub样式表加载完成
+     * 3. 等待GitHub样式表加载完成后确认主题设置
      * 
      * 加载检测机制：
-     * 1. 首先检查DOM中是否存在样式表元素
-     * 2. 然后检查stylesheet.sheet属性是否不为null
-     * 3. 如果未加载完成，添加load事件监听器
-     * 4. 设置2秒超时保护，避免无限等待
-     * 
-     * @returns Promise<void> 样式表加载完成的Promise
+     * 1. 检查样式表元素是否存在
+     * 2. 检查stylesheet.sheet属性是否可访问
+     * 3. 设置合理的超时保护，避免无限等待
      */
     const waitForStylesheets = () => {
       return new Promise((resolve) => {
-        // 获取GitHub官方样式表元素引用
         const lightTheme = document.getElementById('github-light-theme');
         const darkTheme = document.getElementById('github-dark-theme');
         
-        // 如果样式表元素不存在，继续等待DOM加载
+        // 如果样式表元素不存在，短暂等待后重试
         if (!lightTheme || !darkTheme) {
           console.log('[主题] 样式表尚未加载，等待中...');
           setTimeout(() => waitForStylesheets().then(resolve), 50);
           return;
         }
         
-        /**
-         * 检查样式表是否已完全加载
-         * 
-         * 检测方法：
-         * - stylesheet.sheet !== null 表示样式表已加载并可访问
-         * - 如果为null，说明样式表仍在加载中
-         */
         const checkLoaded = () => {
           const lightLoaded = lightTheme.sheet !== null;
           const darkLoaded = darkTheme.sheet !== null;
@@ -100,14 +109,18 @@
             resolve();
           } else {
             // 为未加载的样式表添加load事件监听器
+            const promises = [];
             if (!lightLoaded) {
-              lightTheme.addEventListener('load', checkLoaded, { once: true });
+              promises.push(new Promise(res => lightTheme.addEventListener('load', res, { once: true })));
             }
             if (!darkLoaded) {
-              darkTheme.addEventListener('load', checkLoaded, { once: true });
+              promises.push(new Promise(res => darkTheme.addEventListener('load', res, { once: true })));
             }
-            // 添加超时保护，避免无限等待
-            setTimeout(resolve, 2000);
+            // 等待所有样式表加载完成或超时
+            Promise.race([
+              Promise.all(promises),
+              new Promise(res => setTimeout(res, 1000)) // 1秒超时保护
+            ]).then(resolve);
           }
         };
         
@@ -115,44 +128,14 @@
       });
     };
 
-    // 等待样式表加载完成后开始主题初始化
+    // 4. 等待样式表加载完成后确认主题设置
     waitForStylesheets().then(() => {
-      console.log('[主题] 样式表加载完成，开始初始化主题');
+      console.log('[主题] 样式表加载完成，确认主题设置');
       
-      /**
-       * 确定初始主题设置
-       * 
-       * 优先级顺序：
-       * 1. 插件配置中的主题设置（config.theme.current）
-       * 2. localStorage中保存的用户偏好
-       * 3. 默认值：'light'
-       */
-      let initialTheme = 'light'; // 默认使用light主题
-      
-      if (config && config.theme && config.theme.current) {
-        // 优先使用插件配置中的主题设置
-        initialTheme = config.theme.current;
-        console.log(`[主题] 使用配置中的主题: ${initialTheme}`);
-      } else {
-        // 其次使用localStorage中保存的用户偏好
-        const savedTheme = localStorage.getItem('markdown-livesync-theme');
-        if (savedTheme) {
-          initialTheme = savedTheme;
-          console.log(`[主题] 使用localStorage中的主题: ${initialTheme}`);
-        } else {
-          console.log(`[主题] 使用默认主题: ${initialTheme}`);
-        }
-      }
-      
-      // 应用初始主题设置
+      // 再次确认主题设置，确保样式正确应用
       setTheme(initialTheme);
       
-      // 简化的主题系统不需要监听系统主题变化
-      
       console.log('[主题] 主题系统初始化完成');
-      
-      // 移除重复的createTocHeaderControls()调用
-      // 目录头部控件将在initializeToc()中统一创建
     });
   }
 
@@ -1814,24 +1797,20 @@
     if (tocContent && toc) {
       tocContent.innerHTML = toc;
       initializeTocState();
-      createTocHeaderControls(); // 重新创建头部控件（包含智能控制）
+      // 只在目录头部控件不存在时才创建，避免重复
+      const existingControls = document.querySelector('.toc-middle-controls');
+      if (!existingControls) {
+        createTocHeaderControls();
+        console.log('[内容更新] 创建目录头部控件');
+      }
     }
     
-    // 重新初始化
+    // 重新初始化必要的组件
     initializeMermaid();
-    initializeCodeBlocks(); // 重新初始化代码块
+    initializeCodeBlocks();
     setupIntersectionObserver();
     
-    // 内容更新后重新应用当前主题
-    // 这确保新内容能正确应用主题样式
-    const currentTheme = getCurrentTheme();
-    if (currentTheme) {
-      console.log(`[内容更新] 重新应用主题: ${currentTheme}`);
-      // 延迟一点时间确保DOM更新完成
-      setTimeout(() => {
-        setTheme(currentTheme);
-      }, 50);
-    }
+    console.log('[内容更新] 预览内容更新完成');
   }
 
   /**
@@ -2011,6 +1990,9 @@
     
     // 初始化主题系统（包含样式表加载等待和主题应用）
     initializeThemeAndToc();
+
+    // 初始化目录功能（状态管理、事件绑定等）
+    initializeToc();
     
     // 设置各种事件监听器（滚动、点击、键盘、窗口大小变化等）
     setupEventListeners();
@@ -2018,8 +2000,6 @@
     // 初始化Mermaid图表渲染引擎
     initializeMermaid();
     
-    // 初始化目录功能（状态管理、事件绑定等）
-    initializeToc();
     
     // 设置IntersectionObserver用于滚动同步
     setupIntersectionObserver();

@@ -131,8 +131,8 @@ export class MarkdownPreviewPanel {
    * 显示流程：
    * 1. 检查并创建WebView面板
    * 2. 设置当前预览文档
-   * 3. 渲染Markdown内容
-   * 4. 显示面板到指定位置
+   * 3. 显示面板到指定位置
+   * 4. 等待WebView就绪后再更新内容（避免重复更新）
    * 
    * @param document 要预览的Markdown文档
    * @param viewColumn 面板显示位置（当前窗口或侧边）
@@ -150,11 +150,19 @@ export class MarkdownPreviewPanel {
       // 步骤2: 更新当前预览文档
       this.currentDocument = document;
 
-      // 步骤3: 渲染并更新内容
-      await this.updateContent();
-
-      // 步骤4: 显示面板到指定位置
+      // 步骤3: 显示面板到指定位置
       this.panel!.reveal(viewColumn);
+
+      // 步骤4: 如果WebView已就绪，立即更新内容；否则等待ready消息
+      if (this.webviewReady) {
+        await this.updateContent();
+      } else {
+        // WebView还未就绪时，先设置初始HTML，等待ready消息后再更新实际内容
+        const html = this.markdownProcessor.convertToHtml(document.getText());
+        const toc = this.tocProvider.generateToc(document);
+        const webviewHtml = this.getWebviewContent(html, toc);
+        this.panel!.webview.html = webviewHtml;
+      }
 
     } catch (error) {
       this.logger.error('显示预览面板失败' + (error instanceof Error ? (' ' + error.message) : ''));
@@ -262,11 +270,11 @@ export class MarkdownPreviewPanel {
     switch (message.type) {
       case 'ready':
         // WebView就绪通知
-        // 确保只在首次就绪时更新内容，避免重复渲染
+        // 标记WebView已就绪，但不重复更新内容（内容已在show()中设置）
         this.logger.debug('[Webview] 预览面板就绪');
         if (!this.webviewReady) {
           this.webviewReady = true;
-          await this.updateContent();
+          this.logger.debug('[Webview] WebView状态已设置为就绪');
         }
         break;
         

@@ -172,14 +172,13 @@ export interface ThemeConfig {
   /** 
    * 当前使用的主题
    * 
-   * - 'vscode': 跟随VSCode编辑器主题（推荐）
-   * - 'light': 固定使用浅色主题
-   * - 'dark': 固定使用深色主题
+   * - 'light': 使用浅色主题
+   * - 'dark': 使用深色主题
    * 
-   * 默认值：'vscode'
-   * 建议：使用VSCode主题保持界面一致性
+   * 默认值：'light'
+   * 建议：根据用户偏好选择合适的主题
    */
-  current: 'vscode' | 'light' | 'dark';
+  current: 'light' | 'dark';
   
   /** 
    * 是否跟随VSCode主题变化
@@ -187,7 +186,7 @@ export interface ThemeConfig {
    * 启用后，当VSCode切换明暗主题时，预览也会自动切换
    * 禁用后，使用current配置的固定主题
    * 
-   * 默认值：true
+   * 默认值：false
    * 用户体验：提供一致的视觉体验
    */
   followVSCode: boolean;
@@ -758,7 +757,7 @@ export class ConfigurationManager {
       // 验证主题配置
       if (config.theme) {
         const theme = config.theme;
-        if (!['vscode', 'light', 'dark'].includes(theme.current) ||
+        if (!['light', 'dark'].includes(theme.current) ||
             typeof theme.followVSCode !== 'boolean') {
           return false;
         }
