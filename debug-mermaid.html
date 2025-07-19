@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Mermaid测试</title>
+    <script src="node_modules/mermaid/dist/mermaid.min.js"></script>
+</head>
+<body>
+    <h1>Mermaid库测试</h1>
+    
+    <pre><code class="language-mermaid">
+graph TD
+    A[开始] --> B{判断条件}
+    B -->|是| C[执行操作A]
+    B -->|否| D[执行操作B]
+    C --> E[结束]
+    D --> E
+    </code></pre>
+    
+    <div id="mermaid-test"></div>
+    
+    <script>
+        console.log('=== Mermaid库测试 ===');
+        console.log('mermaid对象:', typeof mermaid);
+        
+        if (typeof mermaid !== 'undefined') {
+            console.log('mermaid.initialize:', typeof mermaid.initialize);
+            console.log('mermaid.render:', typeof mermaid.render);
+            
+            // 初始化mermaid
+            mermaid.initialize({
+                startOnLoad: false,
+                theme: 'default'
+            });
+            
+            // 测试渲染
+            const code = `
+graph TD
+    A[开始] --> B{判断条件}
+    B -->|是| C[执行操作A]
+    B -->|否| D[执行操作B]
+    C --> E[结束]
+    D --> E
+            `;
+            
+            mermaid.render('test-svg', code).then(({ svg }) => {
+                console.log('渲染成功:', svg.length > 0);
+                document.getElementById('mermaid-test').innerHTML = svg;
+            }).catch(error => {
+                console.error('渲染失败:', error);
+            });
+        } else {
+            console.error('Mermaid库未加载！');
+        }
+    </script>
+</body>
+</html> 

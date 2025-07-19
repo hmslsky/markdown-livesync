@@ -28,12 +28,38 @@ class MermaidManager {
       return;
     }
     
-    if (typeof mermaid === 'undefined') {
-      console.warn('[Mermaid] Mermaid库未加载');
-      return;
-    }
-    
-    this.initializeMermaid();
+    // 异步等待Mermaid库加载完成
+    this.waitForMermaid().then(() => {
+      this.initializeMermaid();
+    }).catch(error => {
+      console.error('[Mermaid] Mermaid库加载失败:', error);
+    });
+  }
+
+  /**
+   * 等待Mermaid库加载完成
+   * 
+   * @returns {Promise} 返回Promise，当Mermaid库加载完成时resolve
+   */
+  waitForMermaid() {
+    return new Promise((resolve, reject) => {
+      const checkMermaid = () => {
+        if (typeof mermaid !== 'undefined' && mermaid.initialize) {
+          console.log('[Mermaid] Mermaid库已加载');
+          resolve(true);
+        } else {
+          console.log('[Mermaid] 等待Mermaid库加载...');
+          setTimeout(checkMermaid, 100);
+        }
+      };
+      
+      // 最多等待5秒
+      setTimeout(() => {
+        reject(new Error('Mermaid库加载超时'));
+      }, 5000);
+      
+      checkMermaid();
+    });
   }
 
   /**
@@ -157,6 +183,9 @@ class MermaidManager {
     
     console.log('[Mermaid] 开始渲染Mermaid图表');
     
+    // 先清理可能存在的重复容器
+    this.cleanupDuplicateContainers();
+    
     const mermaidElements = document.querySelectorAll('pre code.language-mermaid');
     
     mermaidElements.forEach((element, index) => {
@@ -164,6 +193,24 @@ class MermaidManager {
     });
     
     console.log(`[Mermaid] 完成渲染 ${mermaidElements.length} 个图表`);
+  }
+
+  /**
+   * 清理重复的Mermaid容器
+   */
+  cleanupDuplicateContainers() {
+    const containers = document.querySelectorAll('.mermaid-container');
+    containers.forEach(container => {
+      // 检查容器后面是否还有相同内容的pre元素
+      const nextElement = container.nextElementSibling;
+      if (nextElement && nextElement.tagName === 'PRE') {
+        const codeElement = nextElement.querySelector('code.language-mermaid');
+        if (codeElement) {
+          console.log('[Mermaid] 发现重复的代码块，清理旧容器');
+          container.remove();
+        }
+      }
+    });
   }
 
   /**
@@ -178,7 +225,7 @@ class MermaidManager {
       const uniqueId = `mermaid-diagram-${index}-${Date.now()}`;
       
       // 检查是否已经渲染过
-      if (element.parentElement.querySelector('.mermaid-container')) {
+      if (element.closest('.mermaid-container') || element.parentElement.querySelector('.mermaid-container')) {
         console.log(`[Mermaid] 图表 ${index} 已存在，跳过渲染`);
         return;
       }

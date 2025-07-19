@@ -271,13 +271,13 @@
       }
     }
     
-    // 重新初始化各个模块
-    if (mermaidManager) {
-      mermaidManager.renderMermaidDiagrams();
-    }
-    
+    // 重新初始化各个模块（注意顺序：先处理普通代码块，再处理Mermaid）
     if (codeBlocksManager) {
       codeBlocksManager.reinitialize();
+    }
+    
+    if (mermaidManager) {
+      mermaidManager.renderMermaidDiagrams();
     }
     
     if (scrollSyncManager) {

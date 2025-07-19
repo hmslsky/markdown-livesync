@@ -10,14 +10,14 @@
 
 class ScrollSyncManager {
   constructor() {
-    this.currentLine = 1;
-    this.isScrolling = false;
-    this.scrollTimeout = null;
-    this.lastSyncTime = 0;
-    this.syncDebounceTimeout = null;
-    this.intersectionObserver = null;
-    this.config = {};
-    this.vscode = null;
+    this.currentLine = 1;               // 当前行号
+    this.isScrolling = false;           // 是否正在滚动
+    this.scrollTimeout = null;          // 滚动超时
+    this.lastSyncTime = 0;              // 上次同步时间
+    this.syncDebounceTimeout = null;    // 同步防抖超时
+    this.intersectionObserver = null;   // IntersectionObserver实例，用于监听元素可见性变化
+    this.config = {};                   // 配置对象
+    this.vscode = null;                 // VSCode API对象
     
     // 同步控制常量
     this.MIN_SYNC_INTERVAL = 50;    // 最小同步间隔50ms
@@ -35,7 +35,10 @@ class ScrollSyncManager {
     this.config = config;
     this.vscode = vscode;
     
+    // 设置 IntersectionObserver 和滚动监听器
     this.setupIntersectionObserver();
+
+    // 设置滚动监听器
     this.setupScrollListener();
   }
 
@@ -56,6 +59,7 @@ class ScrollSyncManager {
       threshold: [0, 0.1, 0.5, 1.0] // 多个阈值，提供更精确的检测
     };
     
+    // 创建 IntersectionObserver 实例，用于监听元素可见性变化
     this.intersectionObserver = new IntersectionObserver((entries) => {
       this.handleIntersection(entries);
     }, options);

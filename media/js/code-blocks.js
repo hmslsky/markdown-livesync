@@ -36,9 +36,11 @@ class CodeBlocksManager {
     
     codeBlocks.forEach((codeElement, index) => {
       const preElement = codeElement.parentElement;
-      if (!preElement || preElement.classList.contains('code-enhanced')) {
-        return; // 已经处理过的跳过
-      }
+      // 跳过已经处理过的代码块
+      if (!preElement || preElement.classList.contains('code-enhanced')) return;
+
+      // 跳过Mermaid代码块
+      // if (codeElement.classList.contains('language-mermaid')) return;
       
       // 标记为已处理
       preElement.classList.add('code-enhanced');
@@ -194,10 +196,13 @@ class CodeBlocksManager {
   reinitialize() {
     console.log('[代码块] 重新初始化代码块');
     
-    // 清除已处理标记
+    // 清除已处理标记，但不包括可能已被Mermaid替换的元素
     const enhancedBlocks = document.querySelectorAll('.code-enhanced');
     enhancedBlocks.forEach(block => {
-      block.classList.remove('code-enhanced');
+      // 检查是否是Mermaid容器，如果是则跳过
+      if (!block.closest('.mermaid-container')) {
+        block.classList.remove('code-enhanced');
+      }
     });
     
     // 重新初始化
